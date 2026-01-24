@@ -25,6 +25,7 @@ The plugin repo is: https://github.com/AnganSamadder/opencode-agent-tmux.git
 - **Configurable Layout**: Support multiple tmux layouts (main-vertical, tiled, etc.)
 - **Multi-Port Support**: Automatically finds available ports when running multiple instances
 - **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode
+- **Cross-Platform**: Full support for **macOS**, **Linux**, and **Windows** (via PowerShell or WSL)
 
 ## 📋 Requirements
 
