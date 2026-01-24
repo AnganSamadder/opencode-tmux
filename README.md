@@ -1,26 +1,12 @@
 # opencode-agent-tmux
 
-OpenCode plugin that provides tmux integration for viewing agent execution in real-time.
+OpenCode plugin that provides tmux integration for viewing agent execution in real-time. Automatically spawns panes, streams output, and manages your terminal workspace.
 
-## Features
+## 🤖 For Humans (Quick Start)
 
-- **Automatic Tmux Pane Spawning**: When any agent starts, automatically spawns a tmux pane
-- **Live Streaming**: Each pane runs `opencode attach` to show real-time agent output
-- **Auto-Cleanup**: Panes automatically close when agents complete
-- **Configurable Layout**: Support multiple tmux layouts (main-vertical, tiled, etc.)
-- **Multi-Port Support**: Automatically finds available ports when running multiple instances
-- **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode
+Want to get started immediately? Just paste this prompt into your OpenCode agent (or any other agentic tool like Claude Code) and let it handle the setup for you:
 
-## Installation
-
-Install and configure opencode-agent-tmux by following the instructions here:
-https://raw.githubusercontent.com/AnganSamadder/opencode-agent-tmux/main/docs/installation.md
-
-### For Agents
-
-Copy and paste this prompt to have an agent install it for you:
-
-```
+```text
 Please install the opencode-agent-tmux plugin for me.
 
 1. Clone the repository to ~/Code/opencode-agent-tmux
@@ -31,7 +17,48 @@ Please install the opencode-agent-tmux plugin for me.
 The plugin repo is: https://github.com/AnganSamadder/opencode-agent-tmux.git
 ```
 
-## Usage
+## ✨ Features
+
+- **Automatic Tmux Pane Spawning**: When any agent starts, automatically spawns a tmux pane
+- **Live Streaming**: Each pane runs `opencode attach` to show real-time agent output
+- **Auto-Cleanup**: Panes automatically close when agents complete
+- **Configurable Layout**: Support multiple tmux layouts (main-vertical, tiled, etc.)
+- **Multi-Port Support**: Automatically finds available ports when running multiple instances
+- **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode
+
+## 📋 Requirements
+
+- **OpenCode**
+- **tmux**
+- **Bun** (for building)
+
+## 🛠 Manual Installation
+
+If you prefer to install it yourself:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/AnganSamadder/opencode-agent-tmux.git ~/Code/opencode-agent-tmux
+    ```
+
+2.  **Build the plugin:**
+    ```bash
+    cd ~/Code/opencode-agent-tmux
+    bun install
+    bun run build
+    ```
+
+3.  **Configure OpenCode:**
+    Add the plugin to your `~/.config/opencode/opencode.json`:
+    ```json
+    {
+      "plugins": [
+        "~/Code/opencode-agent-tmux"
+      ]
+    }
+    ```
+
+## 🚀 Usage
 
 ### Easy Mode (Recommended)
 
@@ -59,10 +86,6 @@ opencode
 # Terminal 2
 opencode
 # → Detects 4096 in use, automatically uses port 4097
-
-# Terminal 3
-opencode
-# → Uses port 4098
 ```
 
 Each instance works independently with its own tmux panes!
@@ -76,31 +99,9 @@ tmux
 opencode --port 4096
 ```
 
-### What Happens
+## ⚙️ Configuration
 
-When you trigger agents (e.g., using Task tool, background agents):
-1. New tmux panes automatically spawn
-2. Each pane shows live streaming output
-3. Panes close automatically when agents complete
-
-## Testing
-
-Test with this prompt:
-
-```
-I need help analyzing my codebase. Please launch 3 agents in parallel:
-1. Search for all TypeScript files
-2. Analyze the project structure
-3. Check for test files
-
-Work on these in parallel.
-```
-
-You should see 3 new tmux panes spawn, each showing live output from a different agent.
-
-## Configuration
-
-Edit `~/.config/opencode/opencode-agent-tmux.json`:
+You can customize behavior by creating `~/.config/opencode/opencode-agent-tmux.json`:
 
 ```json
 {
@@ -112,46 +113,32 @@ Edit `~/.config/opencode/opencode-agent-tmux.json`:
 }
 ```
 
-### Configuration Options
-
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable/disable the plugin |
 | `port` | number | `4096` | OpenCode server port |
-| `layout` | string | `"main-vertical"` | Tmux layout: `main-horizontal`, `main-vertical`, `tiled`, `even-horizontal`, `even-vertical` |
+| `layout` | string | `"main-vertical"` | Tmux layout: `main-horizontal`, `main-vertical`, `tiled`, etc. |
 | `main_pane_size` | number | `60` | Size of main pane (20-80%) |
 | `auto_close` | boolean | `true` | Auto-close panes when sessions complete |
 
-## Troubleshooting
+## ❓ Troubleshooting
 
 ### Panes Not Spawning
-
-1. Verify you're inside tmux: `echo $TMUX` should return something
+1. Verify you're inside tmux: `echo $TMUX`
 2. Check tmux is installed: `which tmux`
 3. Check OpenCode server is running with port: `opencode --port 4096`
 4. Check logs: `cat /tmp/opencode-agent-tmux.log`
 
 ### Server Not Found
-
 Make sure OpenCode is started with the `--port` flag matching your config:
-
 ```bash
 opencode --port 4096
 ```
 
-### Multiple Instances
-
-Running multiple instances? Each will automatically get its own port. See `MULTI_PORT.md` for details.
-
-## Advanced Features
-
-- **Multi-Port Support**: See `MULTI_PORT.md` for running multiple instances
-- **Tmux Launcher Details**: See `TMUX_LAUNCHER.md` for wrapper customization
-
-## License
+## 📄 License
 
 MIT
 
-## Acknowledgements
+## 🙏 Acknowledgements
 
-This project extracts and improves upon the tmux session management from [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim) by alvinunreal. It transforms the original implementation into a robust, standalone plugin with multi-port support, enhanced error handling, and agent-agnostic compatibility.
+This project extracts and improves upon the tmux session management from [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim) by alvinunreal.
