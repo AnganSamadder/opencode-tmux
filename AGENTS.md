@@ -199,6 +199,11 @@ async function getData(): Promise<Data> {
 
 This project uses GitHub Actions for automated releases. **Do NOT run `npm publish` manually.**
 
+**Workflow behavior (from `.github/workflows/Release` in the repo):**
+- Trigger: GitHub Release **published** event
+- Build: `bun install` + `bun run build`
+- Publish: `npm publish --access public --provenance` via OIDC (no stored npm token)
+
 ### Steps:
 1. **Make changes, commit with conventional commits:**
    ```bash
@@ -212,7 +217,7 @@ This project uses GitHub Actions for automated releases. **Do NOT run `npm publi
    - Minor (1.x.0): New features, backward compatible
    - Major (x.0.0): Breaking changes
 
-3. **Commit and tag:**
+3. **Commit, tag, and push:**
    ```bash
    git add package.json
    git commit -m "Bump version to X.Y.Z"

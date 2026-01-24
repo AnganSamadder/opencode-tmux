@@ -31,6 +31,7 @@ export class TmuxSessionManager {
   private sessions = new Map<string, TrackedSession>();
   private pollInterval?: ReturnType<typeof setInterval>;
   private enabled = false;
+  private shuttingDown = false;
 
   constructor(ctx: PluginInput, tmuxConfig: TmuxConfig, serverUrl: string) {
     this.client = ctx.client;
@@ -43,6 +44,10 @@ export class TmuxSessionManager {
       tmuxConfig: this.tmuxConfig,
       serverUrl: this.serverUrl,
     });
+
+    if (this.enabled) {
+      this.registerShutdownHandlers();
+    }
   }
 
   async onSessionCreated(event: SessionCreatedEvent): Promise<void> {
@@ -163,6 +168,47 @@ export class TmuxSessionManager {
       }
     } catch (err) {
       log('[tmux-session-manager] poll error', { error: String(err) });
+
+      const serverAlive = await this.isServerAlive();
+      if (!serverAlive) {
+        await this.handleShutdown('server-unreachable');
+      }
+    }
+  }
+
+  private registerShutdownHandlers(): void {
+    const handler = (reason: string) => {
+      void this.handleShutdown(reason);
+    };
+
+    process.once('SIGINT', () => handler('SIGINT'));
+    process.once('SIGTERM', () => handler('SIGTERM'));
+    process.once('SIGHUP', () => handler('SIGHUP'));
+    process.once('SIGQUIT', () => handler('SIGQUIT'));
+    process.once('beforeExit', () => handler('beforeExit'));
+  }
+
+  private async handleShutdown(reason: string): Promise<void> {
+    if (this.shuttingDown) return;
+    this.shuttingDown = true;
+    log('[tmux-session-manager] shutdown detected', { reason });
+    await this.cleanup();
+  }
+
+  private async isServerAlive(): Promise<boolean> {
+    const healthUrl = new URL('/health', this.serverUrl).toString();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
+    try {
+      const response = await fetch(healthUrl, { signal: controller.signal }).catch(
+        () => null,
+      );
+      return response?.ok ?? false;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
