@@ -51,12 +51,26 @@ function setupAlias() {
     fs.writeFileSync(shell.rcFile, '', 'utf-8');
   }
   
-  const rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
+  let rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
   const aliasLine = getAliasLine();
   const exportLine = getExportLine();
   
   const MARKER_START = '# >>> opencode-agent-tmux >>>';
   const MARKER_END = '# <<< opencode-agent-tmux <<<';
+  
+  // Clean up old subagent-tmux alias if it exists
+  const OLD_MARKER_START = '# >>> opencode-subagent-tmux >>>';
+  const OLD_MARKER_END = '# <<< opencode-subagent-tmux <<<';
+  
+  if (rcContent.includes(OLD_MARKER_START)) {
+    console.log('   Removing old opencode-subagent-tmux alias...');
+    const regex = new RegExp(`${OLD_MARKER_START}[\\s\\S]*?${OLD_MARKER_END}\\n?`, 'g');
+    const newContent = rcContent.replace(regex, '');
+    fs.writeFileSync(shell.rcFile, newContent, 'utf-8');
+    console.log('   ✓ Removed old alias');
+    // Reload content
+    rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
+  }
   
   if (rcContent.includes(MARKER_START)) {
     console.log('   ✓ Auto-launcher already configured');

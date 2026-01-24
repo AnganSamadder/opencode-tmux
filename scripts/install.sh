@@ -35,6 +35,17 @@ setup_alias() {
 	local marker_start="# >>> opencode-agent-tmux >>>"
 	local marker_end="# <<< opencode-agent-tmux <<<"
 
+	# Clean up old subagent-tmux alias if it exists
+	local old_marker_start="# >>> opencode-subagent-tmux >>>"
+	local old_marker_end="# <<< opencode-subagent-tmux <<<"
+	
+	if grep -q "$old_marker_start" "$rc_file" 2>/dev/null; then
+		echo "   Removing old opencode-subagent-tmux alias..."
+		# Create a temp file
+		sed "/$old_marker_start/,/$old_marker_end/d" "$rc_file" > "${rc_file}.tmp" && mv "${rc_file}.tmp" "$rc_file"
+		echo "   ✓ Removed old alias"
+	fi
+	
 	if grep -q "$marker_start" "$rc_file" 2>/dev/null; then
 		echo "   ✓ Auto-launcher already configured"
 		echo ""

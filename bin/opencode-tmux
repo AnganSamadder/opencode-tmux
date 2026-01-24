@@ -2,7 +2,23 @@
 
 OPENCODE_PORT_START="${OPENCODE_PORT:-4096}"
 OPENCODE_PORT_MAX=$((OPENCODE_PORT_START + 10))
-OPENCODE_BIN="$(which opencode 2>/dev/null | grep -v "$(readlink -f "$0" 2>/dev/null || echo "$0")" | head -1)"
+
+# Find the real opencode binary, ignoring this script
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+OPENCODE_BIN=""
+
+IFS=: read -ra PATHS <<< "$PATH"
+for dir in "${PATHS[@]}"; do
+    if [ -x "$dir/opencode" ] && [ "$dir/opencode" != "$SCRIPT_PATH" ]; then
+        OPENCODE_BIN="$dir/opencode"
+        break
+    fi
+done
+
+if [ -z "$OPENCODE_BIN" ]; then
+    # Fallback: try finding it with which, excluding this script
+    OPENCODE_BIN="$(which -a opencode 2>/dev/null | grep -v "$SCRIPT_PATH" | head -1)"
+fi
 
 if [ -z "$OPENCODE_BIN" ]; then
     echo "Error: opencode command not found in PATH"
