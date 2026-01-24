@@ -1,1 +1,4 @@
 *.ts linguist-language=TypeScript
+
+# Hide generated build output from GitHub language stats
+dist/** linguist-generated=true

@@ -1,6 +1,6 @@
 {
   "name": "opencode-agent-tmux",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "OpenCode plugin that provides tmux integration for viewing agent execution in real-time",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build",
-    "postinstall": "node dist/scripts/install.js || echo 'Skipping postinstall setup (dist not found)'"
+    "postinstall": "test -f dist/scripts/install.js && node dist/scripts/install.js || echo 'Skipping postinstall setup (dist not found)'"
   },
   "keywords": [
     "opencode",
