@@ -24,8 +24,16 @@
     "tmux",
     "agent"
   ],
-  "author": "",
+  "author": "Angan Samadder",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnganSamadder/opencode-agent-tmux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnganSamadder/opencode-agent-tmux/issues"
+  },
+  "homepage": "https://github.com/AnganSamadder/opencode-agent-tmux#readme",
   "dependencies": {
     "zod": "^3.24.1"
   },
