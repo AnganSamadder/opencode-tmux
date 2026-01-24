@@ -71,6 +71,10 @@ To install this plugin, please perform the following steps for the user:
 3.  **Run OpenCode:**
     Restart your terminal and type `opencode`. The plugin handles the rest!
 
+## 🛠️ Development
+
+For contributors working on this plugin locally, see [LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for setup instructions.
+
 ## ✨ Features
 
 - **Automatic Tmux Pane Spawning**: When any agent starts, automatically spawns a tmux pane
