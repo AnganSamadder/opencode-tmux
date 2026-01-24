@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const HOME = os.homedir();
 
-function detectShell() {
+interface ShellConfig {
+  name: string;
+  rcFile: string;
+  dir?: string;
+}
+
+function detectShell(): ShellConfig {
   const shell = process.env.SHELL || '';
   const platform = process.platform;
   
@@ -44,7 +50,7 @@ function detectShell() {
   return { name: 'unknown', rcFile: path.join(HOME, '.profile') };
 }
 
-function getAliasContent(shellName) {
+function getAliasContent(shellName: string): string {
   if (shellName === 'powershell') {
     return `
 function opencode {
@@ -56,11 +62,11 @@ function opencode {
   return `alias opencode='opencode-tmux'`;
 }
 
-function getExportLine() {
+function getExportLine(): string {
   return `export OPENCODE_PORT=4096`;
 }
 
-function setupAlias() {
+function setupAlias(): void {
   const shell = detectShell();
   
   console.log('');
@@ -69,7 +75,7 @@ function setupAlias() {
   console.log(`   Config file: ${shell.rcFile}`);
   
   if (shell.name === 'powershell') {
-      if (!fs.existsSync(shell.dir)) {
+      if (shell.dir && !fs.existsSync(shell.dir)) {
           fs.mkdirSync(shell.dir, { recursive: true });
       }
   }
@@ -140,7 +146,7 @@ try {
   setupAlias();
 } catch (error) {
   console.error('');
-  console.error('⚠️  Failed to auto-configure shell alias:', error.message);
+  console.error('⚠️  Failed to auto-configure shell alias:', (error as Error).message);
   console.error('');
   process.exit(0);
 }

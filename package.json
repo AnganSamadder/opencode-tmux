@@ -6,19 +6,17 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "opencode-tmux": "./bin/opencode-tmux.js"
+    "opencode-tmux": "./dist/bin/opencode-tmux.js"
   },
   "files": [
-    "dist",
-    "bin",
-    "scripts"
+    "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build",
-    "postinstall": "node scripts/install.js"
+    "postinstall": "node dist/scripts/install.js"
   },
   "keywords": [
     "opencode",
@@ -33,6 +31,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.4",
+    "@types/node": "^25.0.10",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3"
   }

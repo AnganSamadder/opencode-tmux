@@ -502,7 +502,7 @@ var OpencodeAgentTmux = async (ctx) => {
     }
   };
 };
-var index_default = OpencodeAgentTmux;
+var src_default = OpencodeAgentTmux;
 export {
-  index_default as default
+  src_default as default
 };
