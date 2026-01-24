@@ -1,6 +1,6 @@
 {
   "name": "opencode-agent-tmux",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "OpenCode plugin that provides tmux integration for viewing agent execution in real-time",
   "type": "module",
   "main": "dist/index.js",
