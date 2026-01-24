@@ -4,12 +4,41 @@ import { spawn, execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { env, platform, exit, argv } from 'node:process';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 // Configuration
 const OPENCODE_PORT_START = parseInt(env.OPENCODE_PORT || '4096', 10);
 const OPENCODE_PORT_MAX = OPENCODE_PORT_START + 10;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function spawnPluginUpdater(): void {
+  if (env.OPENCODE_TMUX_DISABLE_UPDATES === '1') return;
+
+  const updaterPath = join(__dirname, '../scripts/update-plugins.js');
+  if (!existsSync(updaterPath)) return;
+
+  try {
+    const child = spawn(
+      process.execPath,
+      [updaterPath],
+      {
+        stdio: 'ignore',
+        detached: true,
+        env: {
+          ...process.env,
+          OPENCODE_TMUX_UPDATE: '1'
+        }
+      }
+    );
+    child.unref();
+  } catch (error) {
+    // Silent failure: updater should never block startup
+  }
+}
 
 function findOpencodeBin(): string | null {
   // 1. Try finding 'opencode' in PATH
@@ -75,9 +104,26 @@ function hasTmux(): boolean {
   }
 }
 
+function extractLogUpdateFlag(args: string[]): { args: string[]; logUpdate: boolean } {
+  let logUpdate = false;
+  const cleaned: string[] = [];
+
+  for (const arg of args) {
+    if (arg === '--log-update' || arg.startsWith('--log-update=')) {
+      logUpdate = true;
+      continue;
+    }
+    cleaned.push(arg);
+  }
+
+  return { args: cleaned, logUpdate };
+}
+
 // --- Main Logic ---
 
 async function main() {
+  spawnPluginUpdater();
+
   const opencodeBin = findOpencodeBin();
   if (!opencodeBin) {
     console.error("❌ Error: Could not find 'opencode' binary.");
@@ -98,7 +144,13 @@ async function main() {
   env.OPENCODE_PORT = port.toString();
 
   // Pass-through arguments
-  const args = argv.slice(2);
+  const rawArgs = argv.slice(2);
+  const { args, logUpdate } = extractLogUpdateFlag(rawArgs);
+  if (logUpdate) {
+    env.OPENCODE_AUTO_UPDATE_LOG_UPDATE = 'true';
+    env.OPENCODE_AUTO_UPDATE_BYPASS_THROTTLE = 'true';
+    env.OPENCODE_AUTO_UPDATE_DEBUG = 'true';
+  }
   // Construct arguments for the opencode binary
   const childArgs = ['--port', port.toString(), ...args];
 

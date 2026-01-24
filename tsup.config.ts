@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'bin/opencode-tmux': 'src/bin/opencode-tmux.ts',
     'scripts/install': 'src/scripts/install.ts',
+    'scripts/update-plugins': 'src/scripts/update-plugins.ts',
   },
   format: ['esm'],
   dts: {
