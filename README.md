@@ -16,6 +16,21 @@ OpenCode plugin that provides tmux integration for viewing agent execution in re
 Install and configure opencode-agent-tmux by following the instructions here:
 https://raw.githubusercontent.com/AnganSamadder/opencode-agent-tmux/main/docs/installation.md
 
+### For Agents
+
+Copy and paste this prompt to have an agent install it for you:
+
+```
+Please install the opencode-agent-tmux plugin for me.
+
+1. Clone the repository to ~/Code/opencode-agent-tmux
+2. Run 'bun install' and 'bun run build' inside the directory
+3. Add the plugin path to my ~/.config/opencode/opencode.json file
+4. Verify the installation by running 'opencode --version'
+
+The plugin repo is: https://github.com/AnganSamadder/opencode-agent-tmux.git
+```
+
 ## Usage
 
 ### Easy Mode (Recommended)
