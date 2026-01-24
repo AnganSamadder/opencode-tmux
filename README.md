@@ -9,7 +9,8 @@ An [OpenCode](https://opencode.ai) plugin that provides **smart tmux integration
 - **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode.
 - **Cross-Platform**: Full support for **macOS**, **Linux**, and **Windows** (via PowerShell or WSL).
 
-![Demo](https://via.placeholder.com/800x400?text=Imagine+Cool+Tmux+Demo+Here)
+![Opencode Agent Tmux Demo](https://raw.githubusercontent.com/angansamadder/opencode-agent-tmux/main/assets/demo.png)
+*Note: The demo shows the "sisyphus" agent from [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode), but this plugin supports ALL OpenCode subagents.*
 
 ## Installation
 
