@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+OPENCODE_PORT_START="${OPENCODE_PORT:-4096}"
+OPENCODE_PORT_MAX=$((OPENCODE_PORT_START + 10))
+OPENCODE_BIN="$(which opencode 2>/dev/null | grep -v "$(readlink -f "$0" 2>/dev/null || echo "$0")" | head -1)"
+
+if [ -z "$OPENCODE_BIN" ]; then
+    echo "Error: opencode command not found in PATH"
+    exit 1
+fi
+
+check_port() {
+    local port=$1
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -i ":$port" -sTCP:LISTEN -t >/dev/null 2>&1
+        return $?
+    elif command -v nc >/dev/null 2>&1; then
+        nc -z localhost "$port" >/dev/null 2>&1
+        return $?
+    else
+        curl -s "http://localhost:$port/health" >/dev/null 2>&1
+        return $?
+    fi
+}
+
+find_available_port() {
+    local port=$OPENCODE_PORT_START
+    
+    while [ $port -le $OPENCODE_PORT_MAX ]; do
+        if ! check_port "$port"; then
+            echo "$port"
+            return 0
+        fi
+        port=$((port + 1))
+    done
+    
+    echo "Error: All ports from $OPENCODE_PORT_START to $OPENCODE_PORT_MAX are in use"
+    echo "Please stop an existing OpenCode instance or set OPENCODE_PORT to a different range"
+    exit 1
+}
+
+AVAILABLE_PORT=$(find_available_port)
+
+if [ -z "$AVAILABLE_PORT" ]; then
+    exit 1
+fi
+
+if [ "$AVAILABLE_PORT" != "$OPENCODE_PORT_START" ]; then
+    echo "⚠️  Port $OPENCODE_PORT_START is in use, using port $AVAILABLE_PORT instead"
+fi
+
+export OPENCODE_PORT="$AVAILABLE_PORT"
+
+if [ -n "$TMUX" ]; then
+    exec "$OPENCODE_BIN" --port "$AVAILABLE_PORT" "$@"
+else
+    exec tmux new-session "$OPENCODE_BIN --port $AVAILABLE_PORT $*"
+fi
