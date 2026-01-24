@@ -1,21 +1,32 @@
 # opencode-agent-tmux
 
-OpenCode plugin that provides tmux integration for viewing agent execution in real-time. Automatically spawns panes, streams output, and manages your terminal workspace.
+OpenCode plugin that provides **smart tmux integration** for viewing agent execution in real-time. Automatically spawns panes, streams output, and manages your terminal workspace.
 
-## 🤖 For Humans (Quick Start)
+![License](https://img.shields.io/npm/l/opencode-agent-tmux)
+![Version](https://img.shields.io/npm/v/opencode-agent-tmux)
 
-Want to get started immediately? Just paste this prompt into your OpenCode agent (or any other agentic tool like Claude Code) and let it handle the setup for you:
+## 🚀 Quick Start (Official)
 
-```text
-Please install the opencode-agent-tmux plugin for me.
-
-1. Clone the repository to ~/Code/opencode-agent-tmux
-2. Run 'bun install' and 'bun run build' inside the directory
-3. Add the plugin path to my ~/.config/opencode/opencode.json file
-4. Verify the installation by running 'opencode --version'
-
-The plugin repo is: https://github.com/AnganSamadder/opencode-agent-tmux.git
+**1. Install via NPM:**
+```bash
+npm install -g opencode-agent-tmux
 ```
+*The installer automatically configures your shell (Bash, Zsh, Fish, PowerShell) to use the smart wrapper.*
+
+**2. Enable the Plugin:**
+Add `"opencode-agent-tmux"` to your `~/.config/opencode/opencode.json`:
+```json
+{
+  "plugins": [
+    "opencode-agent-tmux"
+  ]
+}
+```
+
+**3. Run OpenCode:**
+Just type `opencode` in your terminal. The plugin handles the rest!
+
+---
 
 ## ✨ Features
 
@@ -23,78 +34,30 @@ The plugin repo is: https://github.com/AnganSamadder/opencode-agent-tmux.git
 - **Live Streaming**: Each pane runs `opencode attach` to show real-time agent output
 - **Auto-Cleanup**: Panes automatically close when agents complete
 - **Configurable Layout**: Support multiple tmux layouts (main-vertical, tiled, etc.)
-- **Multi-Port Support**: Automatically finds available ports when running multiple instances
+- **Multi-Port Support**: Automatically finds available ports (4096-4106) when running multiple instances
 - **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode
 - **Cross-Platform**: Full support for **macOS**, **Linux**, and **Windows** (via PowerShell or WSL)
 
 ## 📋 Requirements
 
 - **OpenCode**
-- **tmux**
-- **Bun** (for building)
-
-## 📦 Installation (Official)
-
-1.  **Install via NPM:**
-    ```bash
-    npm install -g opencode-agent-tmux
-    ```
-    *Note: The installation automatically configures a shell alias to enable the smart tmux wrapper.*
-
-2.  **Configure OpenCode:**
-    Add the plugin name to your `~/.config/opencode/opencode.json`:
-    ```json
-    {
-      "plugins": [
-        "opencode-agent-tmux"
-      ]
-    }
-    ```
-
-## 🛠 Manual Installation (Development)
-
-If you prefer to install it yourself:
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/AnganSamadder/opencode-agent-tmux.git ~/Code/opencode-agent-tmux
-    ```
-
-2.  **Build the plugin:**
-    ```bash
-    cd ~/Code/opencode-agent-tmux
-    bun install
-    bun run build
-    ```
-
-3.  **Configure OpenCode:**
-    Add the plugin to your `~/.config/opencode/opencode.json`:
-    ```json
-    {
-      "plugins": [
-        "~/Code/opencode-agent-tmux"
-      ]
-    }
-    ```
+- **tmux** (Must be installed on your system)
+- **Node.js** (For the installation wrapper)
 
 ## 🚀 Usage
 
-### Easy Mode (Recommended)
-
-After installation, just type:
-
+### Automatic Mode (Recommended)
+After installation, just run:
 ```bash
 opencode
 ```
-
 The wrapper automatically:
-- Launches tmux if you're not already in it
-- Finds an available port (4096-4106) if default is in use
-- Starts OpenCode with the available port
-- Enables the plugin to spawn panes for agents
+1.  Launches a new tmux session (if you aren't in one).
+2.  Finds an available port.
+3.  Starts the OpenCode server.
+4.  Enables the plugin to spawn panes for agents.
 
 ### Running Multiple Instances
-
 Want to run multiple OpenCode sessions? No problem:
 
 ```bash
@@ -104,19 +67,9 @@ opencode
 
 # Terminal 2
 opencode
-# → Detects 4096 in use, automatically uses port 4097
+# → Detects 4096 is in use, automatically uses port 4097
 ```
-
 Each instance works independently with its own tmux panes!
-
-### Manual Mode
-
-Or start OpenCode inside tmux manually:
-
-```bash
-tmux
-opencode --port 4096
-```
 
 ## ⚙️ Configuration
 
@@ -140,24 +93,26 @@ You can customize behavior by creating `~/.config/opencode/opencode-agent-tmux.j
 | `main_pane_size` | number | `60` | Size of main pane (20-80%) |
 | `auto_close` | boolean | `true` | Auto-close panes when sessions complete |
 
+## 🛠 Development / Manual Installation
+
+Only needed if you want to contribute to the code:
+
+1.  **Clone:** `git clone https://github.com/AnganSamadder/opencode-agent-tmux.git`
+2.  **Build:** `bun install && bun run build`
+3.  **Configure:** Add the **full path** to your config: `"/absolute/path/to/opencode-agent-tmux"`
+
 ## ❓ Troubleshooting
 
 ### Panes Not Spawning
 1. Verify you're inside tmux: `echo $TMUX`
-2. Check tmux is installed: `which tmux`
-3. Check OpenCode server is running with port: `opencode --port 4096`
-4. Check logs: `cat /tmp/opencode-agent-tmux.log`
+2. Check tmux is installed: `which tmux` (or `where tmux` on Windows)
+3. Check logs: `cat /tmp/opencode-agent-tmux.log`
 
 ### Server Not Found
-Make sure OpenCode is started with the `--port` flag matching your config:
-```bash
-opencode --port 4096
-```
+Make sure OpenCode is started with the `--port` flag matching your config (the wrapper does this automatically).
 
 ## 📄 License
-
 MIT
 
 ## 🙏 Acknowledgements
-
 This project extracts and improves upon the tmux session management from [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim) by alvinunreal.
