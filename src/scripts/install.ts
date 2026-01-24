@@ -102,10 +102,15 @@ function setupAlias(): void {
     console.log('   ✓ Removed old alias');
     rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
   }
-  
+
   if (rcContent.includes(MARKER_START)) {
-    console.log('   ✓ Auto-launcher already configured');
-    return;
+    console.log('   Updating opencode-agent-tmux alias...');
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+    const regex = new RegExp(`${escapeRegExp(MARKER_START)}[\\s\\S]*?${escapeRegExp(MARKER_END)}\\n?`, 'g');
+    
+    rcContent = rcContent.replace(regex, '');
+    fs.writeFileSync(shell.rcFile, rcContent, 'utf-8');
+    rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
   }
   
   let configBlock = '';
