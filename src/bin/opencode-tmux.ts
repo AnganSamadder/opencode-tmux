@@ -361,7 +361,9 @@ async function main() {
   const isCliCommand =
     args.length > 0 &&
     (['auth', 'config', 'plugins', 'update', 'completion', 'stats'].includes(args[0]) ||
-      ['--version', '-v', '--help', '-h'].includes(args[0]));
+      ['--version', '-v', '--help', '-h'].includes(args[0]) ||
+      args.includes('--print-logs') ||
+      args.includes('--log-level'));
 
   if (isCliCommand) {
     const opencodeBin = findOpencodeBin();
