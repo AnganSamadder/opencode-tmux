@@ -302,8 +302,8 @@ async function tryReclaimPort(
         continue;
       }
 
-      if (!isForegroundProcess(pid)) {
-        log('Port owned by background opencode process, skipping:', port.toString(), pid.toString());
+      if (isForegroundProcess(pid)) {
+        log('Port owned by potentially busy foreground process, skipping:', port.toString(), pid.toString());
         continue;
       }
     }
@@ -386,7 +386,7 @@ async function main() {
     child.stderr?.on('data', (data) => {
       const lines = data.toString().split('\n');
       const filtered = lines.filter(
-        (line) => !/^INFO\s+.*service=models\.dev.*refreshing/.test(line),
+        (line: string) => !/^INFO\s+.*service=models\.dev.*refreshing/.test(line),
       );
       process.stderr.write(filtered.join('\n'));
     });
