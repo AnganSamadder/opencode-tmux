@@ -249,27 +249,18 @@ async function tryReclaimPort(
   if (platform === 'win32') return false;
 
   const healthy = await isOpencodeHealthy(port);
+  if (healthy) return false;
+
   const pids = getListeningPids(port);
-  const sessionCount = healthy ? await getOpencodeSessionCount(port) : null;
-  const idleServer = healthy && sessionCount === 0;
 
   log(
     'Port scan:',
     port.toString(),
     'healthy',
     String(healthy),
-    'sessions',
-    sessionCount === null ? 'unknown' : sessionCount.toString(),
-    'idle',
-    String(idleServer),
     'pids',
     pids.length > 0 ? pids.join(',') : 'none',
   );
-
-  if (healthy && sessionCount !== null && sessionCount > 0) {
-    log('Port in use by active server:', port.toString());
-    return false;
-  }
 
   if (pids.length === 0) {
     return false;
@@ -281,10 +272,6 @@ async function tryReclaimPort(
     const tty = getProcessTty(pid);
     const stat = getProcessStat(pid);
     const hasTtyPeers = hasOtherTtyProcesses(tty, pid);
-    if (!command || !command.includes('opencode')) {
-      log('Port owned by non-opencode process, skipping:', port.toString());
-      continue;
-    }
 
     const inTmux = tmuxPanePids.size > 0 && isDescendantOf(pid, tmuxPanePids);
     log(
@@ -300,12 +287,11 @@ async function tryReclaimPort(
       String(inTmux),
       'ttyPeers',
       String(hasTtyPeers),
-      'idle',
-      String(idleServer),
       'command',
-      command,
+      command ?? 'unknown',
     );
-    if (!idleServer) {
+
+    if (command && command.includes('opencode')) {
       if (inTmux) {
         log('Port owned by tmux process, skipping:', port.toString(), pid.toString());
         continue;
@@ -316,23 +302,13 @@ async function tryReclaimPort(
         continue;
       }
 
-      if (healthy && sessionCount === null) {
-        log('Unable to read sessions, skipping:', port.toString(), pid.toString());
-        continue;
-      }
-
-      if (healthy && sessionCount !== null && sessionCount > 0) {
-        log('Port has active sessions, skipping:', port.toString(), pid.toString());
-        continue;
-      }
-
-      if (!healthy && !isForegroundProcess(pid)) {
+      if (!isForegroundProcess(pid)) {
         log('Port owned by background opencode process, skipping:', port.toString(), pid.toString());
         continue;
       }
     }
 
-    log('Attempting to stop stale opencode process:', port.toString(), pid.toString());
+    log('Attempting to stop stale or non-opencode process:', port.toString(), pid.toString());
     attemptedKill = true;
     try {
       process.kill(pid, 'SIGTERM');
@@ -397,7 +373,8 @@ async function main() {
     }
 
     const bypassArgs = [...args];
-    if (!args.some((arg) => arg.startsWith('--log-level'))) {
+    const hasPrintLogs = args.includes('--print-logs');
+    if (!hasPrintLogs && !args.some((arg) => arg.startsWith('--log-level'))) {
       bypassArgs.push('--log-level', 'ERROR');
     }
 
