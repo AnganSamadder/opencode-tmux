@@ -466,7 +466,7 @@ async function main() {
       return arg;
     });
 
-    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')} || { echo "Exit code: $?"; echo "Press Enter to close..."; read; }`;
+    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; echo "Exit code: $?"; echo "Press Enter to close..."; read`;
     
     log('Shell command for tmux:', shellCommand);
 
