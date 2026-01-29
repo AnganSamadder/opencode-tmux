@@ -211,6 +211,50 @@ function isForegroundProcess(pid: number): boolean {
   return stat.includes('+');
 }
 
+function killZombieClients(): void {
+  if (platform === 'win32') return;
+
+  log('Scanning for zombie opencode clients...');
+  const output = safeExec('ps -A -o pid,ppid,command');
+  if (!output) return;
+
+  const lines = output.split('\n').slice(1);
+  const currentPid = process.pid;
+  const parentPid = process.ppid;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const match = trimmed.match(/^(\d+)\s+(\d+)\s+(.+)$/);
+    if (!match) continue;
+
+    const pid = parseInt(match[1], 10);
+    const ppid = parseInt(match[2], 10);
+    const command = match[3];
+
+    if (pid === currentPid || pid === parentPid) continue;
+
+    if (
+      command.includes('opencode') &&
+      command.includes('attach') &&
+      command.includes('--session')
+    ) {
+      if (command.includes('opencode-agent-tmux') || command.includes('opencode-tmux')) {
+        continue;
+      }
+
+      log(`Found zombie client: PID ${pid}, PPID ${ppid}, CMD: ${command}`);
+      log(`Sending SIGKILL to zombie PID ${pid}`);
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch (err) {
+        log(`Failed to kill PID ${pid}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+}
+
 async function getOpencodeSessionCount(port: number): Promise<number | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
@@ -414,6 +458,8 @@ async function main() {
 
   spawnPluginUpdater();
 
+  killZombieClients();
+
   const port = await findAvailablePort();
   log('Found available port:', port);
   
@@ -466,12 +512,15 @@ async function main() {
       return arg;
     });
 
-    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; echo "Exit code: $?"; echo "Press Enter to close..."; read`;
+    // Run opencode - tmux will close automatically when it exits normally
+    // Only show "Press Enter" prompt if there's an unexpected error (non-zero/non-signal exit)
+    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; EXIT_CODE=$?; if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 130 ] && [ $EXIT_CODE -ne 143 ]; then echo "Exit code: $EXIT_CODE"; echo "Press Enter to close..."; read; fi`;
     
     log('Shell command for tmux:', shellCommand);
 
     const tmuxArgs = [
       'new-session',
+      '-c', process.cwd(),  // Use current working directory
       shellCommand
     ];
     
