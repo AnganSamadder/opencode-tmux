@@ -1,4 +1,5 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync, execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import type { TmuxConfig, TmuxLayout } from '../config';
 import { log } from './logger';
 
@@ -16,13 +17,16 @@ interface SpawnResult {
   stderr: string;
 }
 
-async function spawnAsync(
+export async function spawnAsync(
   command: string[],
-  options?: { ignoreOutput?: boolean },
+  options?: { ignoreOutput?: boolean; env?: NodeJS.ProcessEnv },
 ): Promise<SpawnResult> {
   return new Promise((resolve) => {
     const [cmd, ...args] = command;
-    const proc = spawn(cmd, args, { stdio: 'pipe' });
+    const proc = spawn(cmd, args, {
+      stdio: 'pipe',
+      env: options?.env ?? process.env,
+    });
 
     let stdout = '';
     let stderr = '';
@@ -152,10 +156,16 @@ export function isInsideTmux(): boolean {
 
 async function applyLayout(
   tmux: string,
-  layout: TmuxLayout,
+  layout: TmuxLayout | string,
   mainPaneSize: number,
 ): Promise<void> {
   try {
+    // If it's a dynamic layout placeholder, we can't apply it directly via tmux select-layout
+    // (unless it's a raw string starting with checksum)
+    if (layout === 'dynamic-vertical') {
+       return; 
+    }
+
     await spawnAsync([tmux, 'select-layout', layout]);
 
     if (layout === 'main-horizontal' || layout === 'main-vertical') {
@@ -236,9 +246,14 @@ export async function spawnTmuxPane(
       opencodeCmd,
     ];
 
-    log('[tmux] spawnTmuxPane: executing', { tmux, args, opencodeCmd });
+    const env = {
+      ...process.env,
+      OPENCODE_HIDE_SUBAGENT_HEADER: '1',
+    };
 
-    const result = await spawnAsync([tmux, ...args]);
+    log('[tmux] spawnTmuxPane: executing', { tmux, args, opencodeCmd, env });
+
+    const result = await spawnAsync([tmux, ...args], { env });
     const paneId = result.stdout.trim();
 
     log('[tmux] spawnTmuxPane: split result', {
@@ -312,6 +327,71 @@ export async function closeTmuxPane(paneId: string): Promise<boolean> {
     return false;
   } catch (err) {
     log('[tmux] closeTmuxPane: exception', { error: String(err) });
+    return false;
+  }
+}
+
+export function killTmuxSessionSync(): boolean {
+  let tmux = tmuxPath;
+  log('[tmux] killTmuxSessionSync starting', { tmuxPath: tmux });
+
+  if (!tmux) {
+    try {
+      tmux = execSync('which tmux', { encoding: 'utf-8' }).trim();
+      log('[tmux] killTmuxSessionSync resolved via which', { tmux });
+    } catch {
+      tmux = '/usr/local/bin/tmux';
+      if (!existsSync(tmux)) {
+        tmux = '/opt/homebrew/bin/tmux';
+      }
+      log('[tmux] killTmuxSessionSync using fallback', { tmux });
+    }
+  }
+
+  try {
+    let sessionName = '';
+    try {
+      sessionName = execSync(`${tmux} display-message -p '#S'`, { encoding: 'utf-8' }).trim();
+      log('[tmux] killTmuxSessionSync target session identified', { sessionName });
+    } catch {
+      log('[tmux] killTmuxSessionSync could not identify session name, using default');
+    }
+
+    log('[tmux] killTmuxSessionSync executing kill-session', { tmux, sessionName });
+    const args = sessionName ? ['kill-session', '-t', sessionName] : ['kill-session'];
+    const result = spawnSync(tmux, args);
+    
+    log('[tmux] killTmuxSessionSync result', {
+      status: result.status,
+      error: result.error?.message,
+      stderr: result.stderr?.toString().trim()
+    });
+    return result.status === 0;
+  } catch (err) {
+    log('[tmux] killTmuxSessionSync exception', { error: String(err) });
+    return false;
+  }
+}
+
+export async function killTmuxSession(): Promise<boolean> {
+  const tmux = await getTmuxPath();
+  if (!tmux) {
+    log('[tmux] killTmuxSession: tmux binary not found');
+    return false;
+  }
+
+  try {
+    log('[tmux] killTmuxSession: killing current session');
+    // Use spawnSync to ensure it's executed before the process can be killed
+    const result = spawnSync(tmux, ['kill-session']);
+
+    log('[tmux] killTmuxSession: result', {
+      status: result.status,
+      stderr: result.stderr?.toString().trim(),
+    });
+    return result.status === 0;
+  } catch (err) {
+    log('[tmux] killTmuxSession: exception', { error: String(err) });
     return false;
   }
 }

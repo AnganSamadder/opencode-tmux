@@ -528,7 +528,7 @@ async function main() {
 
     // Run opencode - tmux will close automatically when it exits normally
     // Only show "Press Enter" prompt if there's an unexpected error (non-zero/non-signal exit)
-    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; EXIT_CODE=$?; if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 130 ] && [ $EXIT_CODE -ne 143 ]; then echo "Exit code: $EXIT_CODE"; echo "Press Enter to close..."; read; fi`;
+    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; EXIT_CODE=$?; if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 130 ] && [ $EXIT_CODE -ne 133 ] && [ $EXIT_CODE -ne 143 ]; then echo "Exit code: $EXIT_CODE"; echo "Press Enter to close..."; read; fi`;
     
     log('Shell command for tmux:', shellCommand);
 

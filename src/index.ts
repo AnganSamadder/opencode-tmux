@@ -60,6 +60,7 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
     enabled: config.enabled,
     layout: config.layout,
     main_pane_size: config.main_pane_size,
+    max_agents_per_column: config.max_agents_per_column,
   };
 
   const serverUrl = ctx.serverUrl?.toString() || detectServerUrl();
