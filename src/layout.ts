@@ -102,3 +102,161 @@ export function groupAgentsByColumn<T>(
 
   return columns;
 }
+
+type LayoutType = 'LEFTRIGHT' | 'TOPBOTTOM' | 'WINDOWPANE';
+
+interface LayoutCell {
+  type: LayoutType;
+  sx: number;
+  sy: number;
+  xoff: number;
+  yoff: number;
+  wpId?: number;
+  children?: LayoutCell[];
+}
+
+export function mainPanePercentForColumns(numColumns: number): number {
+  if (numColumns <= 1) return 60;
+  if (numColumns === 2) return 45;
+  return 30;
+}
+
+export function layoutChecksum(layout: string): number {
+  let csum = 0;
+  for (let i = 0; i < layout.length; i++) {
+    csum = (csum >> 1) + ((csum & 1) << 15);
+    csum = (csum + layout.charCodeAt(i)) & 0xffff;
+  }
+  return csum;
+}
+
+function dumpLayoutCell(cell: LayoutCell): string {
+  const base =
+    cell.wpId !== undefined
+      ? `${cell.sx}x${cell.sy},${cell.xoff},${cell.yoff},${cell.wpId}`
+      : `${cell.sx}x${cell.sy},${cell.xoff},${cell.yoff}`;
+
+  if (cell.type === 'WINDOWPANE') {
+    return base;
+  }
+
+  const children = cell.children ?? [];
+  const open = cell.type === 'LEFTRIGHT' ? '{' : '[';
+  const close = cell.type === 'LEFTRIGHT' ? '}' : ']';
+  return `${base}${open}${children.map(dumpLayoutCell).join(',')}${close}`;
+}
+
+function splitSizes(total: number, count: number): number[] {
+  if (count <= 0) return [];
+  const separators = count - 1;
+  const available = Math.max(0, total - separators);
+  const base = Math.floor(available / count);
+  const remainder = available - base * count;
+
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(base + (i < remainder ? 1 : 0));
+  }
+  return out;
+}
+
+export function buildMainVerticalMultiColumnLayoutString(params: {
+  windowWidth: number;
+  windowHeight: number;
+  mainPaneWpId: number;
+  columns: number[][];
+  mainPanePercent: number;
+}): string {
+  const { windowWidth, windowHeight, mainPaneWpId, columns, mainPanePercent } = params;
+
+  const numColumns = columns.length;
+  if (numColumns <= 0) {
+    throw new Error('columns must be non-empty');
+  }
+
+  const clampedPercent = Math.max(30, Math.min(80, mainPanePercent));
+  const desiredMainWidth = Math.floor((windowWidth * clampedPercent) / 100);
+  const mainWidth = Math.max(0, Math.min(windowWidth - 2, desiredMainWidth));
+  const rightWidth = Math.max(0, windowWidth - mainWidth - 1);
+
+  const mainCell: LayoutCell = {
+    type: 'WINDOWPANE',
+    sx: mainWidth,
+    sy: windowHeight,
+    xoff: 0,
+    yoff: 0,
+    wpId: mainPaneWpId,
+  };
+
+  const rightXoff = mainWidth + 1;
+  const colWidths = splitSizes(rightWidth, numColumns);
+  const columnCells: LayoutCell[] = [];
+
+  let xoff = rightXoff;
+  for (let c = 0; c < numColumns; c++) {
+    const colPaneIds = columns[c];
+    const colWidth = colWidths[c] ?? 0;
+
+    if (colPaneIds.length === 1) {
+      columnCells.push({
+        type: 'WINDOWPANE',
+        sx: colWidth,
+        sy: windowHeight,
+        xoff,
+        yoff: 0,
+        wpId: colPaneIds[0],
+      });
+    } else {
+      const rowHeights = splitSizes(windowHeight, colPaneIds.length);
+      const rows: LayoutCell[] = [];
+      let yoff = 0;
+      for (let r = 0; r < colPaneIds.length; r++) {
+        rows.push({
+          type: 'WINDOWPANE',
+          sx: colWidth,
+          sy: rowHeights[r] ?? 0,
+          xoff,
+          yoff,
+          wpId: colPaneIds[r],
+        });
+        yoff += (rowHeights[r] ?? 0) + 1;
+      }
+
+      columnCells.push({
+        type: 'TOPBOTTOM',
+        sx: colWidth,
+        sy: windowHeight,
+        xoff,
+        yoff: 0,
+        children: rows,
+      });
+    }
+
+    xoff += colWidth + 1;
+  }
+
+  const rightCell: LayoutCell =
+    numColumns === 1
+      ? (columnCells[0] as LayoutCell)
+      : {
+          type: 'LEFTRIGHT',
+          sx: rightWidth,
+          sy: windowHeight,
+          xoff: rightXoff,
+          yoff: 0,
+          children: columnCells,
+        };
+
+  const root: LayoutCell = {
+    type: 'LEFTRIGHT',
+    sx: windowWidth,
+    sy: windowHeight,
+    xoff: 0,
+    yoff: 0,
+    children: [mainCell, rightCell],
+  };
+
+  const layout = dumpLayoutCell(root);
+  const checksum = layoutChecksum(layout);
+  return `${checksum.toString(16).padStart(4, '0')},${layout}`;
+}

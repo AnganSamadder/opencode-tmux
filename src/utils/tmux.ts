@@ -1,5 +1,10 @@
 import { spawn } from 'node:child_process';
 import type { TmuxConfig, TmuxLayout } from '../config';
+import {
+  buildMainVerticalMultiColumnLayoutString,
+  groupAgentsByColumn,
+  mainPanePercentForColumns,
+} from '../layout';
 import { log } from './logger';
 
 const BASE_BACKOFF_MS = 250;
@@ -184,6 +189,113 @@ async function applyLayout(
   }
 }
 
+async function getCurrentPaneId(tmux: string): Promise<string | null> {
+  const result = await spawnAsyncFn([tmux, 'display-message', '-p', '#{pane_id}']);
+  const paneId = result.stdout.trim();
+  return paneId ? paneId : null;
+}
+
+async function getWindowSize(
+  tmux: string,
+): Promise<{ width: number; height: number } | null> {
+  const result = await spawnAsyncFn([
+    tmux,
+    'display-message',
+    '-p',
+    '#{window_width} #{window_height}',
+  ]);
+  const parts = result.stdout.trim().split(/\s+/);
+  if (parts.length < 2) return null;
+  const width = Number(parts[0]);
+  const height = Number(parts[1]);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+  return { width, height };
+}
+
+async function listPaneIds(tmux: string): Promise<string[]> {
+  const result = await spawnAsyncFn([tmux, 'list-panes', '-F', '#{pane_id}']);
+  return result.stdout
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+function paneWpId(paneId: string): number | null {
+  if (!paneId.startsWith('%')) return null;
+  const n = Number(paneId.slice(1));
+  return Number.isFinite(n) ? n : null;
+}
+
+async function tryApplyMainVerticalMultiColumnLayout(
+  tmux: string,
+  maxAgentsPerColumn: number,
+): Promise<boolean> {
+  const size = await getWindowSize(tmux);
+  if (!size) return false;
+
+  const currentPaneId = await getCurrentPaneId(tmux);
+  if (!currentPaneId) return false;
+
+  const panesBefore = await listPaneIds(tmux);
+  if (panesBefore.length < 2) return false;
+
+  if (panesBefore[0] && panesBefore[0] !== currentPaneId) {
+    await spawnAsyncFn([tmux, 'swap-pane', '-s', currentPaneId, '-t', panesBefore[0]]);
+  }
+
+  const panes = await listPaneIds(tmux);
+  if (panes.length < 2) return false;
+
+  const mainPaneId = panes[0] ?? currentPaneId;
+  const agentPaneIds = panes.slice(1);
+  const columns = groupAgentsByColumn(agentPaneIds, maxAgentsPerColumn);
+  if (columns.length <= 1) {
+    return false;
+  }
+
+  const mainPanePercent = mainPanePercentForColumns(columns.length);
+  const mainWp = paneWpId(mainPaneId);
+  if (mainWp === null) return false;
+
+  const wpColumns: number[][] = [];
+  for (const col of columns) {
+    const wpIds: number[] = [];
+    for (const paneId of col) {
+      const wpId = paneWpId(paneId);
+      if (wpId !== null) {
+        wpIds.push(wpId);
+      }
+    }
+    if (wpIds.length > 0) {
+      wpColumns.push(wpIds);
+    }
+  }
+  if (wpColumns.length <= 1) return false;
+
+  const layoutString = buildMainVerticalMultiColumnLayoutString({
+    windowWidth: size.width,
+    windowHeight: size.height,
+    mainPaneWpId: mainWp,
+    columns: wpColumns,
+    mainPanePercent,
+  });
+
+  const result = await spawnAsyncFn([tmux, 'select-layout', layoutString]);
+  if (result.exitCode === 0) {
+    log('[tmux] applyTmuxLayout: applied multi-column layout', {
+      columns: wpColumns.length,
+      mainPanePercent,
+    });
+    return true;
+  }
+
+  log('[tmux] applyTmuxLayout: multi-column layout failed', {
+    exitCode: result.exitCode,
+    stderr: result.stderr.trim(),
+  });
+  return false;
+}
+
 /**
  * Applies tmux layout using the stored config.
  * Exported for deferred layout after spawn queue drains.
@@ -202,9 +314,20 @@ export async function applyTmuxLayout(): Promise<void> {
   }
 
   const layout = storedConfig.layout ?? 'main-vertical';
-  const mainPaneSize = storedConfig.main_pane_size ?? 60;
+  const maxAgentsPerColumn = storedConfig.max_agents_per_column ?? 3;
+  const mainPaneSize =
+    layout === 'main-vertical' ? mainPanePercentForColumns(1) : (storedConfig.main_pane_size ?? 60);
 
   try {
+    if (layout === 'main-vertical') {
+      const applied = await tryApplyMainVerticalMultiColumnLayout(
+        tmux,
+        maxAgentsPerColumn,
+      );
+      if (applied) {
+        return;
+      }
+    }
     await applyLayout(tmux, layout, mainPaneSize);
   } catch (err) {
     log('[tmux] applyTmuxLayout: failed, falling back to built-in layout', {
