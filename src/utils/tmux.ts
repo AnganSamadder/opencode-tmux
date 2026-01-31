@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process';
 import type { TmuxConfig, TmuxLayout } from '../config';
 import { log } from './logger';
 
+const BASE_BACKOFF_MS = 250;
+
 let tmuxPath: string | null = null;
 let tmuxChecked = false;
 
@@ -98,12 +100,17 @@ export function resetServerCheck(): void {
   serverCheckUrl = null;
 }
 
+export function resetTmuxPathCache(): void {
+  tmuxPath = null;
+  tmuxChecked = false;
+}
+
 async function findTmuxPath(): Promise<string | null> {
   const isWindows = process.platform === 'win32';
   const cmd = isWindows ? 'where' : 'which';
 
   try {
-    const result = await spawnAsync([cmd, 'tmux']);
+    const result = await spawnAsyncFn([cmd, 'tmux']);
 
     if (result.exitCode !== 0) {
       log("[tmux] findTmuxPath: 'which tmux' failed", {
@@ -118,7 +125,7 @@ async function findTmuxPath(): Promise<string | null> {
       return null;
     }
 
-    const verifyResult = await spawnAsync([path, '-V']);
+    const verifyResult = await spawnAsyncFn([path, '-V']);
     if (verifyResult.exitCode !== 0) {
       log('[tmux] findTmuxPath: tmux -V failed', {
         path,
@@ -156,19 +163,19 @@ async function applyLayout(
   mainPaneSize: number,
 ): Promise<void> {
   try {
-    await spawnAsync([tmux, 'select-layout', layout]);
+    await spawnAsyncFn([tmux, 'select-layout', layout]);
 
     if (layout === 'main-horizontal' || layout === 'main-vertical') {
       const sizeOption =
         layout === 'main-horizontal' ? 'main-pane-height' : 'main-pane-width';
 
-      await spawnAsync([
+      await spawnAsyncFn([
         tmux,
         'set-window-option',
         sizeOption,
         `${mainPaneSize}%`,
       ]);
-      await spawnAsync([tmux, 'select-layout', layout]);
+      await spawnAsyncFn([tmux, 'select-layout', layout]);
     }
 
     log('[tmux] applyLayout: applied', { layout, mainPaneSize });
@@ -177,9 +184,99 @@ async function applyLayout(
   }
 }
 
+/**
+ * Applies tmux layout using the stored config.
+ * Exported for deferred layout after spawn queue drains.
+ * Falls back to tmux built-in layout on failure.
+ */
+export async function applyTmuxLayout(): Promise<void> {
+  if (!storedConfig) {
+    log('[tmux] applyTmuxLayout: no stored config, skipping');
+    return;
+  }
+
+  const tmux = await getTmuxPath();
+  if (!tmux) {
+    log('[tmux] applyTmuxLayout: tmux binary not found');
+    return;
+  }
+
+  const layout = storedConfig.layout ?? 'main-vertical';
+  const mainPaneSize = storedConfig.main_pane_size ?? 60;
+
+  try {
+    await applyLayout(tmux, layout, mainPaneSize);
+  } catch (err) {
+    log('[tmux] applyTmuxLayout: failed, falling back to built-in layout', {
+      error: String(err),
+    });
+    try {
+      await spawnAsyncFn([tmux, 'select-layout', layout === 'tiled' ? 'tiled' : 'main-vertical']);
+    } catch (fallbackErr) {
+      log('[tmux] applyTmuxLayout: fallback also failed', { error: String(fallbackErr) });
+    }
+  }
+}
+
 export interface SpawnPaneResult {
   success: boolean;
   paneId?: string;
+}
+
+// For testing: allows mocking spawnAsync
+export let spawnAsyncFn: typeof spawnAsync = spawnAsync;
+
+export function setSpawnAsyncFn(fn: typeof spawnAsync): void {
+  spawnAsyncFn = fn;
+}
+
+export function resetSpawnAsyncFn(): void {
+  spawnAsyncFn = spawnAsync;
+}
+
+async function attemptSpawnPane(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  tmux: string,
+  serverUrl: string,
+): Promise<SpawnPaneResult> {
+  const opencodeCmd = `opencode attach ${serverUrl} --session ${sessionId}`;
+
+  const args = [
+    'split-window',
+    '-h',
+    '-d',
+    '-P',
+    '-F',
+    '#{pane_id}',
+    opencodeCmd,
+  ];
+
+  log('[tmux] attemptSpawnPane: executing', { tmux, args, opencodeCmd });
+
+  const result = await spawnAsyncFn([tmux, ...args]);
+  const paneId = result.stdout.trim();
+
+  log('[tmux] attemptSpawnPane: split result', {
+    exitCode: result.exitCode,
+    paneId,
+    stderr: result.stderr.trim(),
+  });
+
+  if (result.exitCode === 0 && paneId) {
+    await spawnAsyncFn(
+      [tmux, 'select-pane', '-t', paneId, '-T', description.slice(0, 30)],
+      { ignoreOutput: true },
+    );
+
+    log('[tmux] attemptSpawnPane: SUCCESS, pane created', {
+      paneId,
+    });
+    return { success: true, paneId };
+  }
+
+  return { success: false };
 }
 
 export async function spawnTmuxPane(
@@ -223,52 +320,40 @@ export async function spawnTmuxPane(
 
   storedConfig = config;
 
-  try {
-    const opencodeCmd = `opencode attach ${serverUrl} --session ${sessionId}`;
+  const maxRetries = config.max_retry_attempts ?? 2;
+  let attempt = 0;
+  let lastResult: SpawnPaneResult = { success: false };
 
-    const args = [
-      'split-window',
-      '-h',
-      '-d',
-      '-P',
-      '-F',
-      '#{pane_id}',
-      opencodeCmd,
-    ];
+  while (attempt <= maxRetries) {
+    try {
+      lastResult = await attemptSpawnPane(sessionId, description, config, tmux, serverUrl);
 
-    log('[tmux] spawnTmuxPane: executing', { tmux, args, opencodeCmd });
+      if (lastResult.success) {
+        return lastResult;
+      }
 
-    const result = await spawnAsync([tmux, ...args]);
-    const paneId = result.stdout.trim();
-
-    log('[tmux] spawnTmuxPane: split result', {
-      exitCode: result.exitCode,
-      paneId,
-      stderr: result.stderr.trim(),
-    });
-
-    if (result.exitCode === 0 && paneId) {
-      await spawnAsync(
-        [tmux, 'select-pane', '-t', paneId, '-T', description.slice(0, 30)],
-        { ignoreOutput: true },
-      );
-
-      const layout = config.layout ?? 'main-vertical';
-      const mainPaneSize = config.main_pane_size ?? 60;
-      await applyLayout(tmux, layout, mainPaneSize);
-
-      log('[tmux] spawnTmuxPane: SUCCESS, pane created and layout applied', {
-        paneId,
-        layout,
+      log('[tmux] spawnTmuxPane: attempt failed', {
+        attempt: attempt + 1,
+        maxRetries,
       });
-      return { success: true, paneId };
+    } catch (err) {
+      log('[tmux] spawnTmuxPane: exception on attempt', {
+        attempt: attempt + 1,
+        error: String(err),
+      });
+      lastResult = { success: false };
     }
 
-    return { success: false };
-  } catch (err) {
-    log('[tmux] spawnTmuxPane: exception', { error: String(err) });
-    return { success: false };
+    attempt++;
+    if (attempt <= maxRetries) {
+      const backoffMs = BASE_BACKOFF_MS * Math.pow(2, attempt - 1);
+      log('[tmux] spawnTmuxPane: waiting before retry', { backoffMs, attempt });
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    }
   }
+
+  log('[tmux] spawnTmuxPane: all retries exhausted', { attempts: attempt });
+  return lastResult;
 }
 
 export async function closeTmuxPane(paneId: string): Promise<boolean> {
@@ -296,12 +381,7 @@ export async function closeTmuxPane(paneId: string): Promise<boolean> {
     if (result.exitCode === 0) {
       log('[tmux] closeTmuxPane: SUCCESS, pane closed', { paneId });
 
-      if (storedConfig) {
-        const layout = storedConfig.layout ?? 'main-vertical';
-        const mainPaneSize = storedConfig.main_pane_size ?? 60;
-        await applyLayout(tmux, layout, mainPaneSize);
-        log('[tmux] closeTmuxPane: layout reapplied', { layout });
-      }
+      await applyTmuxLayout();
 
       return true;
     }

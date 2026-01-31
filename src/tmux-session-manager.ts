@@ -5,7 +5,8 @@ import {
   SESSION_TIMEOUT_MS,
   type TmuxConfig,
 } from './config';
-import { closeTmuxPane, isInsideTmux, log, spawnTmuxPane } from './utils';
+import { SpawnQueue, type SpawnRequest } from './spawn-queue';
+import { closeTmuxPane, isInsideTmux, log, spawnTmuxPane, applyTmuxLayout } from './utils';
 
 type OpencodeClient = PluginInput['client'];
 
@@ -32,12 +33,27 @@ export class TmuxSessionManager {
   private pollInterval?: ReturnType<typeof setInterval>;
   private enabled = false;
   private shuttingDown = false;
+  private spawnQueue: SpawnQueue;
+  private layoutDebounceTimer?: ReturnType<typeof setTimeout>;
 
   constructor(ctx: PluginInput, tmuxConfig: TmuxConfig, serverUrl: string) {
     this.client = ctx.client;
     this.tmuxConfig = tmuxConfig;
     this.serverUrl = serverUrl;
     this.enabled = tmuxConfig.enabled && isInsideTmux();
+
+    this.spawnQueue = new SpawnQueue({
+      spawnFn: (request: SpawnRequest) =>
+        spawnTmuxPane(request.sessionId, request.title, this.tmuxConfig, this.serverUrl),
+      spawnDelayMs: tmuxConfig.spawn_delay_ms,
+      maxRetries: 0,
+      onQueueUpdate: (pendingCount: number) => {
+        log('[tmux-session-manager] queue update', { pendingCount });
+      },
+      onQueueDrained: () => {
+        this.scheduleDebouncedLayout();
+      },
+    });
 
     log('[tmux-session-manager] initialized', {
       enabled: this.enabled,
@@ -74,17 +90,7 @@ export class TmuxSessionManager {
       title,
     });
 
-    const paneResult = await spawnTmuxPane(
-      sessionId,
-      title,
-      this.tmuxConfig,
-      this.serverUrl,
-    ).catch((err) => {
-      log('[tmux-session-manager] failed to spawn pane', {
-        error: String(err),
-      });
-      return { success: false, paneId: undefined };
-    });
+    const paneResult = await this.spawnQueue.enqueue({ sessionId, title });
 
     if (paneResult.success && paneResult.paneId) {
       const now = Date.now();
@@ -103,6 +109,8 @@ export class TmuxSessionManager {
       });
 
       this.startPolling();
+    } else {
+      log('[tmux-session-manager] failed to spawn pane', { sessionId });
     }
   }
 
@@ -122,6 +130,18 @@ export class TmuxSessionManager {
       this.pollInterval = undefined;
       log('[tmux-session-manager] polling stopped');
     }
+  }
+
+  private scheduleDebouncedLayout(): void {
+    if (this.layoutDebounceTimer) {
+      clearTimeout(this.layoutDebounceTimer);
+    }
+
+    const debounceMs = this.tmuxConfig.layout_debounce_ms ?? 150;
+    this.layoutDebounceTimer = setTimeout(() => {
+      log('[tmux-session-manager] applying deferred layout after queue drain');
+      void applyTmuxLayout();
+    }, debounceMs);
   }
 
   private async pollSessions(): Promise<void> {
@@ -239,6 +259,12 @@ export class TmuxSessionManager {
 
   async cleanup(): Promise<void> {
     this.stopPolling();
+    this.spawnQueue.shutdown();
+
+    if (this.layoutDebounceTimer) {
+      clearTimeout(this.layoutDebounceTimer);
+      this.layoutDebounceTimer = undefined;
+    }
 
     if (this.sessions.size > 0) {
       log('[tmux-session-manager] closing all panes', {

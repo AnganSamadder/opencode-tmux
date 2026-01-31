@@ -1,5 +1,6 @@
 export { log } from './logger';
 export {
+  applyTmuxLayout,
   closeTmuxPane,
   getTmuxPath,
   isInsideTmux,
