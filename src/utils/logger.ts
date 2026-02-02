@@ -11,7 +11,7 @@ function getLogFile(): string {
   }
   if (fs.existsSync(OLD_LOG_FILE)) {
     console.warn(
-      'Deprecation: Using legacy opencode-agent-tmux log file. Please update to @angansamadder/opencode-tmux',
+      'Deprecation: Using legacy opencode-agent-tmux log file. Please update to opencode-plugin-tmux',
     );
     return OLD_LOG_FILE;
   }

@@ -1,7 +1,7 @@
-# @angansamadder/opencode-tmux
+# opencode-plugin-tmux
 
-[![npm version](https://img.shields.io/npm/v/@angansamadder/opencode-tmux.svg)](https://www.npmjs.com/package/@angansamadder/opencode-tmux)
-[![npm downloads](https://img.shields.io/npm/dt/@angansamadder/opencode-tmux)](https://www.npmjs.com/package/@angansamadder/opencode-tmux)
+[![npm version](https://img.shields.io/npm/v/opencode-plugin-tmux.svg)](https://www.npmjs.com/package/opencode-plugin-tmux)
+[![npm downloads](https://img.shields.io/npm/dt/opencode-plugin-tmux)](https://www.npmjs.com/package/opencode-plugin-tmux)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An [OpenCode](https://opencode.ai) plugin that provides **smart tmux integration** for viewing agent execution in real-time. Automatically spawns panes, streams output, and manages your terminal workspace.
@@ -19,7 +19,7 @@ An [OpenCode](https://opencode.ai) plugin that provides **smart tmux integration
 Paste this into any LLM agent (OpenCode, Claude Code, Cursor, etc.):
 
 ```text
-Install the @angansamadder/opencode-tmux plugin by following: https://raw.githubusercontent.com/AnganSamadder/opencode-tmux/main/README.md
+Install the opencode-plugin-tmux plugin by following: https://raw.githubusercontent.com/AnganSamadder/opencode-tmux/main/README.md
 ```
 
 <details>
@@ -29,17 +29,17 @@ To install this plugin, please perform the following steps for the user:
 
 1.  **Install the NPM package globally:**
     ```bash
-    npm install -g @angansamadder/opencode-tmux
+    npm install -g opencode-plugin-tmux
     ```
     *Note: This installer automatically configures the user's shell (Bash/Zsh/Fish/PowerShell) to use the smart wrapper.*
 
 2.  **Configure OpenCode:**
-    Add `"@angansamadder/opencode-tmux"` to the `plugin` array in the user's config file (usually `~/.config/opencode/opencode.json`).
+    Add `"opencode-plugin-tmux"` to the `plugin` array in the user's config file (usually `~/.config/opencode/opencode.json`).
 
     ```json
     {
       "plugin": [
-        "@angansamadder/opencode-tmux"
+        "opencode-plugin-tmux"
       ]
     }
     ```
@@ -54,16 +54,16 @@ To install this plugin, please perform the following steps for the user:
 
 1.  **Install via NPM:**
     ```bash
-    npm install -g @angansamadder/opencode-tmux
+    npm install -g opencode-plugin-tmux
     ```
     *The installer automatically configures your shell to use the smart wrapper.*
 
 2.  **Enable the Plugin:**
-    Add `"@angansamadder/opencode-tmux"` to your `~/.config/opencode/opencode.json`:
+    Add `"opencode-plugin-tmux"` to your `~/.config/opencode/opencode.json`:
     ```json
     {
       "plugin": [
-        "@angansamadder/opencode-tmux"
+        "opencode-plugin-tmux"
       ]
     }
     ```

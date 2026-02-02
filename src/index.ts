@@ -43,7 +43,7 @@ function loadConfig(directory: string): PluginConfig {
       if (fs.existsSync(configPath)) {
         if (legacy) {
           console.warn(
-            'Deprecation: Using legacy opencode-agent-tmux config. Please update to @angansamadder/opencode-tmux',
+            'Deprecation: Using legacy opencode-agent-tmux config. Please update to opencode-plugin-tmux',
           );
         }
         const content = fs.readFileSync(configPath, 'utf-8');

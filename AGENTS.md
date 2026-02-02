@@ -232,7 +232,7 @@ This project uses GitHub Actions for automated releases. **Do NOT run `npm publi
 
 5. **Verify:**
    - Check https://github.com/AnganSamadder/opencode-tmux/actions
-   - Verify npm: `npm view @angansamadder/opencode-tmux version`
+   - Verify npm: `npm view opencode-plugin-tmux version`
 
 ## Local Development
 

@@ -22,7 +22,7 @@ function getStateDir(): string {
   }
   if (fs.existsSync(OLD_STATE_DIR)) {
     console.warn(
-      "Deprecation: Using legacy opencode-agent-tmux state directory. Please update to @angansamadder/opencode-tmux",
+      "Deprecation: Using legacy opencode-agent-tmux state directory. Please update to opencode-plugin-tmux",
     );
     return OLD_STATE_DIR;
   }
@@ -156,7 +156,7 @@ function installLatest(plugins: string[]): void {
     // Use scoped package for opencode-tmux
     const pkgName =
       normalized === "opencode-tmux"
-        ? "@angansamadder/opencode-tmux"
+        ? "opencode-plugin-tmux"
         : normalized;
     const target = `${pkgName}@latest`;
     spawnSync(npmCmd, ["install", "-g", target], { stdio: "ignore" });

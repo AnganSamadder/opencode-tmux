@@ -45,7 +45,7 @@ bun run typecheck
 ## How It Works
 
 ### For End Users (Global Install)
-When users run `npm install -g @angansamadder/opencode-tmux`:
+When users run `npm install -g opencode-plugin-tmux`:
 1. The package is installed to npm's global `node_modules`
 2. The `opencode-tmux` binary is added to npm's global bin directory
 3. The `postinstall` script automatically runs, which:
@@ -80,7 +80,7 @@ node dist/scripts/install.js
 ```
 
 ### Test the Plugin
-1. Make sure `"@angansamadder/opencode-tmux"` is in your `~/.config/opencode/opencode.json` plugin array
+1. Make sure `"opencode-plugin-tmux"` is in your `~/.config/opencode/opencode.json` plugin array
 2. Run `opencode` and spawn an agent (like `explore` or `oracle`)
 3. Check if tmux panes are created automatically
 
@@ -115,7 +115,7 @@ which opencode-tmux
 ### Alias not found
 ```bash
 # Reinstall globally to trigger postinstall
-npm install -g @angansamadder/opencode-tmux@latest
+npm install -g opencode-plugin-tmux@latest
 
 # Or run install script manually
 node dist/scripts/install.js
