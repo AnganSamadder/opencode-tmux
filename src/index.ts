@@ -18,19 +18,34 @@ function detectServerUrl(): string {
 }
 
 function loadConfig(directory: string): PluginConfig {
+  const home = process.env.HOME ?? '';
   const configPaths = [
-    path.join(directory, 'opencode-agent-tmux.json'),
-    path.join(
-      process.env.HOME ?? '',
-      '.config',
-      'opencode',
-      'opencode-agent-tmux.json',
-    ),
+    {
+      path: path.join(directory, 'opencode-tmux.json'),
+      legacy: false,
+    },
+    {
+      path: path.join(directory, 'opencode-agent-tmux.json'),
+      legacy: true,
+    },
+    {
+      path: path.join(home, '.config', 'opencode', 'opencode-tmux.json'),
+      legacy: false,
+    },
+    {
+      path: path.join(home, '.config', 'opencode', 'opencode-agent-tmux.json'),
+      legacy: true,
+    },
   ];
 
-  for (const configPath of configPaths) {
+  for (const { path: configPath, legacy } of configPaths) {
     try {
       if (fs.existsSync(configPath)) {
+        if (legacy) {
+          console.warn(
+            'Deprecation: Using legacy opencode-agent-tmux config. Please update to @angansamadder/opencode-tmux',
+          );
+        }
         const content = fs.readFileSync(configPath, 'utf-8');
         const parsed = JSON.parse(content);
         const result = PluginConfigSchema.safeParse(parsed);
@@ -53,7 +68,7 @@ function loadConfig(directory: string): PluginConfig {
   return defaultConfig;
 }
 
-const OpencodeAgentTmux: Plugin = async (ctx) => {
+const OpencodeTmux: Plugin = async (ctx) => {
   const config = loadConfig(ctx.directory);
 
   const tmuxConfig: TmuxConfig = {
@@ -78,7 +93,7 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
   const tmuxSessionManager = new TmuxSessionManager(ctx, tmuxConfig, serverUrl);
 
   return {
-    name: 'opencode-agent-tmux',
+    name: 'opencode-tmux',
 
     event: async (input) => {
       await tmuxSessionManager.onSessionCreated(
@@ -93,6 +108,6 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
   };
 };
 
-export default OpencodeAgentTmux;
+export default OpencodeTmux;
 
 export type { PluginConfig, TmuxConfig, TmuxLayout } from './config';

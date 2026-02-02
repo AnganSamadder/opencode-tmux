@@ -1,6 +1,6 @@
 # Installation Guide
 
-Follow these steps to install and configure the **opencode-agent-tmux** plugin.
+Follow these steps to install and configure the **opencode-tmux** plugin.
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ Follow these steps to install and configure the **opencode-agent-tmux** plugin.
 Run this one-liner in your terminal:
 
 ```bash
-git clone https://github.com/AnganSamadder/opencode-agent-tmux.git ~/Code/opencode-agent-tmux && \
-cd ~/Code/opencode-agent-tmux && \
+git clone https://github.com/AnganSamadder/opencode-tmux.git ~/Code/opencode-tmux && \
+cd ~/Code/opencode-tmux && \
 bun install && \
 bun run build
 ```
@@ -27,12 +27,12 @@ source ~/.zshrc  # or ~/.bashrc
 
 ## Manual Installation
 
-1. **Clone the repository**
+3. **Clone the repository**
    ```bash
    mkdir -p ~/Code
    cd ~/Code
-   git clone https://github.com/AnganSamadder/opencode-agent-tmux.git
-   cd opencode-agent-tmux
+   git clone https://github.com/AnganSamadder/opencode-tmux.git
+   cd opencode-tmux
    ```
 
 2. **Install dependencies**
@@ -47,14 +47,14 @@ source ~/.zshrc  # or ~/.bashrc
    ```
 
 4. **Register the plugin**
-   Add the plugin path to your OpenCode config (`~/.config/opencode/opencode.json`):
-   ```json
-   {
-     "plugin": [
-       "/Users/YOUR_USERNAME/Code/opencode-agent-tmux"
-     ]
-   }
-   ```
+    Add the plugin path to your OpenCode config (`~/.config/opencode/opencode.json`):
+    ```json
+    {
+      "plugin": [
+        "/Users/YOUR_USERNAME/Code/opencode-tmux"
+      ]
+    }
+    ```
 
 ## Verification
 

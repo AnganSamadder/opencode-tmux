@@ -7,11 +7,34 @@ import os from "node:os";
 
 const HOME = os.homedir();
 const CONFIG_PATH = path.join(HOME, ".config", "opencode", "opencode.json");
-const STATE_DIR = path.join(HOME, ".config", "opencode", "opencode-agent-tmux");
+
+const NEW_STATE_DIR = path.join(HOME, ".config", "opencode", "opencode-tmux");
+const OLD_STATE_DIR = path.join(
+  HOME,
+  ".config",
+  "opencode",
+  "opencode-agent-tmux",
+);
+
+function getStateDir(): string {
+  if (fs.existsSync(NEW_STATE_DIR)) {
+    return NEW_STATE_DIR;
+  }
+  if (fs.existsSync(OLD_STATE_DIR)) {
+    console.warn(
+      "Deprecation: Using legacy opencode-agent-tmux state directory. Please update to @angansamadder/opencode-tmux",
+    );
+    return OLD_STATE_DIR;
+  }
+  return NEW_STATE_DIR;
+}
+
+const STATE_DIR = getStateDir();
 const STATE_PATH = path.join(STATE_DIR, "update-state.json");
 const UPDATE_INTERVAL_HOURS = 12;
 
 type OpencodeConfig = {
+  plugin?: string[];
   plugins?: string[];
   [key: string]: unknown;
 };
@@ -96,12 +119,18 @@ function ensurePluginEntry(config: OpencodeConfig): string[] {
   const existingRaw = config.plugin || config.plugins;
   const existing = Array.isArray(existingRaw) ? [...existingRaw] : [];
 
-  const normalized = existing.map((plugin) =>
-    plugin === "opencode-subagent-tmux" ? "opencode-agent-tmux" : plugin,
-  );
+  const normalized = existing.map((plugin) => {
+    if (
+      plugin === "opencode-subagent-tmux" ||
+      plugin === "opencode-agent-tmux"
+    ) {
+      return "opencode-tmux";
+    }
+    return plugin;
+  });
 
-  if (!normalized.includes("opencode-agent-tmux")) {
-    normalized.push("opencode-agent-tmux");
+  if (!normalized.includes("opencode-tmux")) {
+    normalized.push("opencode-tmux");
   }
 
   if (JSON.stringify(existing) !== JSON.stringify(normalized)) {
@@ -123,7 +152,13 @@ function installLatest(plugins: string[]): void {
   for (const plugin of unique) {
     const normalized = normalizePluginName(plugin);
     if (!normalized) continue;
-    const target = `${normalized}@latest`;
+
+    // Use scoped package for opencode-tmux
+    const pkgName =
+      normalized === "opencode-tmux"
+        ? "@angansamadder/opencode-tmux"
+        : normalized;
+    const target = `${pkgName}@latest`;
     spawnSync(npmCmd, ["install", "-g", target], { stdio: "ignore" });
   }
 }
@@ -134,7 +169,7 @@ function main(): void {
 
   const config = loadConfig() ?? {};
   const plugins = ensurePluginEntry(config);
-  const updateList = ["opencode-agent-tmux", ...plugins];
+  const updateList = ["opencode-tmux", ...plugins];
 
   installLatest(updateList);
   writeLastRun();

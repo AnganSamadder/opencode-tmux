@@ -1,7 +1,7 @@
 {
-  "name": "opencode-agent-tmux",
-  "version": "1.2.7",
-  "description": "OpenCode plugin that provides tmux integration for viewing agent execution in real-time",
+  "name": "@angansamadder/opencode-tmux",
+  "version": "1.3.1",
+  "description": "OpenCode tmux integration: automatically opens subagent panes and renders real-time agent execution with smart layouts",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,18 +22,20 @@
     "opencode",
     "opencode-plugin",
     "tmux",
-    "agent"
+    "agent",
+    "subagent",
+    "visualization"
   ],
   "author": "Angan Samadder",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnganSamadder/opencode-agent-tmux.git"
+    "url": "git+https://github.com/AnganSamadder/opencode-tmux.git"
   },
   "bugs": {
-    "url": "https://github.com/AnganSamadder/opencode-agent-tmux/issues"
+    "url": "https://github.com/AnganSamadder/opencode-tmux/issues"
   },
-  "homepage": "https://github.com/AnganSamadder/opencode-agent-tmux#readme",
+  "homepage": "https://github.com/AnganSamadder/opencode-tmux#readme",
   "dependencies": {
     "zod": "^3.24.1"
   },

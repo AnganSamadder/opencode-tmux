@@ -1,13 +1,13 @@
 # Local Development Setup
 
-This guide is for contributors who want to develop and test `opencode-agent-tmux` locally.
+This guide is for contributors who want to develop and test `opencode-tmux` locally.
 
 ## Quick Setup
 
 ```bash
 # Clone the repository (if you haven't already)
-git clone https://github.com/AnganSamadder/opencode-agent-tmux.git
-cd opencode-agent-tmux
+git clone https://github.com/AnganSamadder/opencode-tmux.git
+cd opencode-tmux
 
 # Install dependencies
 bun install
@@ -45,7 +45,7 @@ bun run typecheck
 ## How It Works
 
 ### For End Users (Global Install)
-When users run `npm install -g opencode-agent-tmux`:
+When users run `npm install -g @angansamadder/opencode-tmux`:
 1. The package is installed to npm's global `node_modules`
 2. The `opencode-tmux` binary is added to npm's global bin directory
 3. The `postinstall` script automatically runs, which:
@@ -80,7 +80,7 @@ node dist/scripts/install.js
 ```
 
 ### Test the Plugin
-1. Make sure `"opencode-agent-tmux"` is in your `~/.config/opencode/opencode.json` plugin array
+1. Make sure `"@angansamadder/opencode-tmux"` is in your `~/.config/opencode/opencode.json` plugin array
 2. Run `opencode` and spawn an agent (like `explore` or `oracle`)
 3. Check if tmux panes are created automatically
 
@@ -115,7 +115,7 @@ which opencode-tmux
 ### Alias not found
 ```bash
 # Reinstall globally to trigger postinstall
-npm install -g opencode-agent-tmux@latest
+npm install -g @angansamadder/opencode-tmux@latest
 
 # Or run install script manually
 node dist/scripts/install.js
