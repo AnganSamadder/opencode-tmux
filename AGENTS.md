@@ -199,10 +199,10 @@ async function getData(): Promise<Data> {
 
 This project uses GitHub Actions for automated releases. **Do NOT run `npm publish` manually.**
 
-**Workflow behavior (from `.github/workflows/Release` in the repo):**
-- Trigger: GitHub Release **published** event
+**Workflow behavior (from `.github/workflows/publish-npm.yml`):**
+- Trigger: Push of tag `v*`
 - Build: `bun install` + `bun run build`
-- Publish: `npm publish --access public --provenance` via OIDC (no stored npm token)
+- Publish: `npm publish --access public` via `NPM_TOKEN` secret
 
 ### Steps:
 1. **Make changes, commit with conventional commits:**
@@ -225,14 +225,14 @@ This project uses GitHub Actions for automated releases. **Do NOT run `npm publi
    git push origin main --tags
    ```
 
-4. **Create GitHub release (triggers npm publish):**
+4. **Create GitHub release (optional, for documentation):**
    ```bash
    gh release create vX.Y.Z --title "vX.Y.Z" --notes "Release notes..."
    ```
 
 5. **Verify:**
-   - Check https://github.com/AnganSamadder/opencode-agent-tmux/actions
-   - Verify npm: `npm view opencode-agent-tmux version`
+   - Check https://github.com/AnganSamadder/opencode-tmux/actions
+   - Verify npm: `npm view @angansamadder/opencode-tmux version`
 
 ## Local Development
 
