@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const OPENCODE_PORT_START = parseInt(env.OPENCODE_PORT || '4096', 10);
 const OPENCODE_PORT_MAX = OPENCODE_PORT_START + 10;
-const LOG_FILE = '/tmp/opencode-tmux.log';
+const LOG_FILE = '/tmp/opentmux.log';
 const HEALTH_TIMEOUT_MS = 1000;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,7 +56,7 @@ function findOpencodeBin(): string | null {
     
     for (const bin of output) {
       const normalizedBin = bin.trim();
-      if (normalizedBin.includes('opencode-tmux') || normalizedBin === currentScript) continue;
+      if (normalizedBin.includes('opentmux') || normalizedBin === currentScript) continue;
       if (normalizedBin) return normalizedBin;
     }
   } catch (e) {}

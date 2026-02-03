@@ -54,12 +54,12 @@ function getAliasContent(shellName: string): string {
   if (shellName === 'powershell') {
     return `
 function opencode {
-    opencode-tmux $args
+    opentmux $args
 }
 `;
   }
   
-  return `alias opencode='opencode-tmux'`;
+  return `alias opencode='opentmux'`;
 }
 
 function getExportLine(): string {
@@ -70,7 +70,7 @@ function setupAlias(): void {
   const shell = detectShell();
   
   console.log('');
-  console.log('🔧 Setting up opencode-agent-tmux auto-launcher...');
+  console.log('🔧 Setting up opentmux auto-launcher...');
   console.log(`   Detected shell: ${shell.name}`);
   console.log(`   Config file: ${shell.rcFile}`);
   
@@ -88,11 +88,14 @@ function setupAlias(): void {
   let rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
   const aliasContent = getAliasContent(shell.name);
   
-  const MARKER_START = '# >>> opencode-agent-tmux >>>';
-  const MARKER_END = '# <<< opencode-agent-tmux <<<';
+  const MARKER_START = '# >>> opentmux >>>';
+  const MARKER_END = '# <<< opentmux <<<';
   
   const OLD_MARKER_START = '# >>> opencode-subagent-tmux >>>';
   const OLD_MARKER_END = '# <<< opencode-subagent-tmux <<<';
+
+  const OLD_AGENT_MARKER_START = '# >>> opencode-agent-tmux >>>';
+  const OLD_AGENT_MARKER_END = '# <<< opencode-agent-tmux <<<';
   
   if (rcContent.includes(OLD_MARKER_START)) {
     console.log('   Removing old opencode-subagent-tmux alias...');
@@ -103,8 +106,17 @@ function setupAlias(): void {
     rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
   }
 
+  if (rcContent.includes(OLD_AGENT_MARKER_START)) {
+    console.log('   Removing old opencode-agent-tmux alias...');
+    const regex = new RegExp(`${OLD_AGENT_MARKER_START}[\\s\\S]*?${OLD_AGENT_MARKER_END}\\n?`, 'g');
+    rcContent = rcContent.replace(regex, '');
+    fs.writeFileSync(shell.rcFile, rcContent, 'utf-8');
+    console.log('   ✓ Removed old opencode-agent-tmux alias');
+    rcContent = fs.readFileSync(shell.rcFile, 'utf-8');
+  }
+
   if (rcContent.includes(MARKER_START)) {
-    console.log('   Updating opencode-agent-tmux alias...');
+    console.log('   Updating opentmux alias...');
     const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
     const regex = new RegExp(`${escapeRegExp(MARKER_START)}[\\s\\S]*?${escapeRegExp(MARKER_END)}\\n?`, 'g');
     
