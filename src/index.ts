@@ -18,34 +18,20 @@ function detectServerUrl(): string {
 }
 
 function loadConfig(directory: string): PluginConfig {
-  const home = process.env.HOME ?? '';
   const configPaths = [
-    {
-      path: path.join(directory, 'opentmux.json'),
-      legacy: false,
-    },
-    {
-      path: path.join(directory, 'opencode-agent-tmux.json'),
-      legacy: true,
-    },
-    {
-      path: path.join(home, '.config', 'opencode', 'opentmux.json'),
-      legacy: false,
-    },
-    {
-      path: path.join(home, '.config', 'opencode', 'opencode-agent-tmux.json'),
-      legacy: true,
-    },
+    path.join(directory, 'opentmux.json'),
+    path.join(directory, 'opencode-agent-tmux.json'), // Fallback
+    path.join(
+      process.env.HOME ?? '',
+      '.config',
+      'opencode',
+      'opentmux.json',
+    ),
   ];
 
-  for (const { path: configPath, legacy } of configPaths) {
+  for (const configPath of configPaths) {
     try {
       if (fs.existsSync(configPath)) {
-        if (legacy) {
-          console.warn(
-            'Deprecation: Using legacy opencode-agent-tmux config. Please update to opentmux',
-          );
-        }
         const content = fs.readFileSync(configPath, 'utf-8');
         const parsed = JSON.parse(content);
         const result = PluginConfigSchema.safeParse(parsed);
@@ -68,13 +54,16 @@ function loadConfig(directory: string): PluginConfig {
   return defaultConfig;
 }
 
-const OpencodeTmux: Plugin = async (ctx) => {
+const OpencodeAgentTmux: Plugin = async (ctx) => {
   const config = loadConfig(ctx.directory);
 
   const tmuxConfig: TmuxConfig = {
     enabled: config.enabled,
     layout: config.layout,
     main_pane_size: config.main_pane_size,
+    spawn_delay_ms: config.spawn_delay_ms,
+    max_retry_attempts: config.max_retry_attempts,
+    layout_debounce_ms: config.layout_debounce_ms,
     max_agents_per_column: config.max_agents_per_column,
   };
 
@@ -108,6 +97,6 @@ const OpencodeTmux: Plugin = async (ctx) => {
   };
 };
 
-export default OpencodeTmux;
+export default OpencodeAgentTmux;
 
 export type { PluginConfig, TmuxConfig, TmuxLayout } from './config';

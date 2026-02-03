@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const OPENCODE_PORT_START = parseInt(env.OPENCODE_PORT || '4096', 10);
 const OPENCODE_PORT_MAX = OPENCODE_PORT_START + 10;
-const LOG_FILE = '/tmp/opentmux.log';
+const LOG_FILE = '/tmp/opencode-tmux.log';
 const HEALTH_TIMEOUT_MS = 1000;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,7 +56,7 @@ function findOpencodeBin(): string | null {
     
     for (const bin of output) {
       const normalizedBin = bin.trim();
-      if (normalizedBin.includes('opentmux') || normalizedBin === currentScript) continue;
+      if (normalizedBin.includes('opencode-tmux') || normalizedBin === currentScript) continue;
       if (normalizedBin) return normalizedBin;
     }
   } catch (e) {}
@@ -211,64 +211,6 @@ function isForegroundProcess(pid: number): boolean {
   return stat.includes('+');
 }
 
-function killZombieClients(): void {
-  if (platform === 'win32') return;
-
-  log('Scanning for zombie opencode clients...');
-  const output = safeExec('ps -A -o pid,ppid,command');
-  if (!output) return;
-
-  const lines = output.split('\n').slice(1);
-  const currentPid = process.pid;
-  const parentPid = process.ppid;
-
-  const wrapperCount = lines.filter(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-    const match = trimmed.match(/^(\d+)\s+(\d+)\s+(.+)$/);
-    if (!match) return false;
-    const command = match[3];
-    return (command.includes('opentmux.ts') || command.includes('bin/opentmux')) && !command.includes('ps ');
-  }).length;
-
-  if (wrapperCount > 1) {
-    log(`Active sessions detected (${wrapperCount} wrappers), skipping zombie cleanup.`);
-    return;
-  }
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    const match = trimmed.match(/^(\d+)\s+(\d+)\s+(.+)$/);
-    if (!match) continue;
-
-    const pid = parseInt(match[1], 10);
-    const ppid = parseInt(match[2], 10);
-    const command = match[3];
-
-    if (pid === currentPid || pid === parentPid) continue;
-
-    if (
-      command.includes('opencode') &&
-      command.includes('attach') &&
-      command.includes('--session')
-    ) {
-      if (command.includes('opencode-agent-tmux') || command.includes('opentmux')) {
-        continue;
-      }
-
-      log(`Found zombie client: PID ${pid}, PPID ${ppid}, CMD: ${command}`);
-      log(`Sending SIGKILL to zombie PID ${pid}`);
-      try {
-        process.kill(pid, 'SIGKILL');
-      } catch (err) {
-        log(`Failed to kill PID ${pid}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
-  }
-}
-
 async function getOpencodeSessionCount(port: number): Promise<number | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
@@ -419,9 +361,7 @@ async function main() {
   const isCliCommand =
     args.length > 0 &&
     (['auth', 'config', 'plugins', 'update', 'completion', 'stats'].includes(args[0]) ||
-      ['--version', '-v', '--help', '-h'].includes(args[0]) ||
-      args.includes('--print-logs') ||
-      args.includes('--log-level'));
+      ['--version', '-v', '--help', '-h'].includes(args[0]));
 
   if (isCliCommand) {
     const opencodeBin = findOpencodeBin();
@@ -471,8 +411,6 @@ async function main() {
   }
 
   spawnPluginUpdater();
-
-  killZombieClients();
 
   const port = await findAvailablePort();
   log('Found available port:', port);
@@ -526,15 +464,12 @@ async function main() {
       return arg;
     });
 
-    // Run opencode - tmux will close automatically when it exits normally
-    // Only show "Press Enter" prompt if there's an unexpected error (non-zero/non-signal exit)
-    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')}; EXIT_CODE=$?; if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 130 ] && [ $EXIT_CODE -ne 133 ] && [ $EXIT_CODE -ne 143 ]; then echo "Exit code: $EXIT_CODE"; echo "Press Enter to close..."; read; fi`;
+    const shellCommand = `${escapedBin} ${escapedArgs.join(' ')} || { echo "Exit code: $?"; echo "Press Enter to close..."; read; }`;
     
     log('Shell command for tmux:', shellCommand);
 
     const tmuxArgs = [
       'new-session',
-      '-c', process.cwd(),  // Use current working directory
       shellCommand
     ];
     
