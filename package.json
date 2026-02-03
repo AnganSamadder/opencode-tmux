@@ -1,6 +1,6 @@
 {
   "name": "opentmux",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "OpenCode tmux integration: automatically opens subagent panes and renders real-time agent execution with smart layouts",
   "type": "module",
   "main": "dist/index.js",
