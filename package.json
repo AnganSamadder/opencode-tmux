@@ -36,6 +36,9 @@
     "url": "https://github.com/AnganSamadder/opentmux/issues"
   },
   "homepage": "https://github.com/AnganSamadder/opentmux#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "proper-lockfile": "^4.1.2",
     "zod": "^3.24.1"
