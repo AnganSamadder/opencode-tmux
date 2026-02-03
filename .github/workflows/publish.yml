@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          # registry-url: 'https://registry.npmjs.org'  <-- REMOVED to prevent setup-node from creating .npmrc with auth token requirement
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Clear npm token env (force OIDC)
         run: |
@@ -34,9 +34,7 @@ jobs:
       - run: bun run build
       
       - name: Publish to NPM
-        run: |
-          rm -f .npmrc
-          npm publish --access public --provenance
+        run: npm publish --access public --provenance
         env:
           NPM_CONFIG_PROVENANCE: true
           NODE_AUTH_TOKEN: ""
