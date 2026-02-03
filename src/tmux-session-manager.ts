@@ -62,6 +62,8 @@ export class TmuxSessionManager {
       intervalMs: tmuxConfig.reaper_interval_ms,
       minZombieChecks: tmuxConfig.reaper_min_zombie_checks,
       gracePeriodMs: tmuxConfig.reaper_grace_period_ms,
+      autoSelfDestruct: tmuxConfig.reaper_auto_self_destruct,
+      selfDestructTimeoutMs: tmuxConfig.reaper_self_destruct_timeout_ms,
     });
 
     log('[tmux-session-manager] initialized', {

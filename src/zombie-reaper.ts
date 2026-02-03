@@ -12,6 +12,8 @@ export interface ReaperOptions {
   intervalMs: number;
   minZombieChecks: number;
   gracePeriodMs: number;
+  autoSelfDestruct?: boolean;
+  selfDestructTimeoutMs?: number;
 }
 
 interface ZombieCandidate {
@@ -32,6 +34,7 @@ export class ZombieReaper {
   private pollInterval?: ReturnType<typeof setInterval>;
   private candidates = new Map<number, ZombieCandidate>();
   private isScanning = false;
+  private lastActivityTime: number = Date.now();
 
   constructor(serverUrl: string, options: ReaperOptions) {
     this.serverUrl = serverUrl;
@@ -158,6 +161,22 @@ export class ZombieReaper {
 
       // Filter processes that belong to THIS server
       const myProcesses = processes.filter(p => this.areUrlsEqual(p.targetUrl, this.serverUrl));
+      
+      if (myProcesses.length > 0) {
+        this.lastActivityTime = Date.now();
+      } else {
+        // No active clients connected to this server
+        if (this.options.autoSelfDestruct && this.options.selfDestructTimeoutMs) {
+          const idleTime = Date.now() - this.lastActivityTime;
+          if (idleTime > this.options.selfDestructTimeoutMs) {
+            log('[zombie-reaper] Server abandoned (no clients). Self-destructing.', { 
+              idleTimeMs: idleTime,
+              timeoutMs: this.options.selfDestructTimeoutMs
+            });
+            process.exit(0);
+          }
+        }
+      }
       
       if (myProcesses.length === 0) {
         // No processes for this server, clear candidates for safety

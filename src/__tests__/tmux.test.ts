@@ -54,6 +54,8 @@ function createTestConfig(overrides: Partial<TmuxConfig> = {}): TmuxConfig {
     reaper_interval_ms: 30000,
     reaper_min_zombie_checks: 3,
     reaper_grace_period_ms: 5000,
+    reaper_auto_self_destruct: true,
+    reaper_self_destruct_timeout_ms: 600000,
     ...overrides,
   };
 }

@@ -69,6 +69,8 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
     reaper_interval_ms: config.reaper_interval_ms,
     reaper_min_zombie_checks: config.reaper_min_zombie_checks,
     reaper_grace_period_ms: config.reaper_grace_period_ms,
+    reaper_auto_self_destruct: config.reaper_auto_self_destruct,
+    reaper_self_destruct_timeout_ms: config.reaper_self_destruct_timeout_ms,
   };
 
   const serverUrl = ctx.serverUrl?.toString() || detectServerUrl();

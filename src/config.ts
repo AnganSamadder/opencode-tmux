@@ -24,6 +24,10 @@ export const TmuxConfigSchema = z.object({
   reaper_interval_ms: z.number().default(30000),
   reaper_min_zombie_checks: z.number().default(3),
   reaper_grace_period_ms: z.number().default(5000),
+  
+  // Auto self-destruct for abandoned servers
+  reaper_auto_self_destruct: z.boolean().default(true),
+  reaper_self_destruct_timeout_ms: z.number().default(60 * 60 * 1000), // 1 hour
 });
 
 export type TmuxConfig = z.infer<typeof TmuxConfigSchema>;
@@ -44,6 +48,10 @@ export const PluginConfigSchema = z.object({
   reaper_interval_ms: z.number().default(30000),
   reaper_min_zombie_checks: z.number().default(3),
   reaper_grace_period_ms: z.number().default(5000),
+
+  // Auto self-destruct for abandoned servers
+  reaper_auto_self_destruct: z.boolean().default(true),
+  reaper_self_destruct_timeout_ms: z.number().default(60 * 60 * 1000), // 1 hour
 });
 
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
