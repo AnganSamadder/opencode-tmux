@@ -24,9 +24,17 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Clear npm token env (force OIDC)
+        run: |
+          echo "NODE_AUTH_TOKEN=" >> "$GITHUB_ENV"
+          echo "NPM_TOKEN=" >> "$GITHUB_ENV"
+
       - run: rm -f package-lock.json bun.lockb
       - run: bun install
       - run: bun run build
-      - run: npm publish --provenance
+      
+      - name: Publish to NPM
+        run: npm publish --access public --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+          NODE_AUTH_TOKEN: ""
