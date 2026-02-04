@@ -104,7 +104,14 @@ function ensurePluginEntry(config: OpencodeConfig): string[] {
     }
   }
 
-  if (!deduped.includes('opencode-agent-tmux')) {
+  const hasTmuxPlugin = deduped.some(
+    (entry) =>
+      entry === 'opencode-agent-tmux' ||
+      entry.endsWith('/opentmux') ||
+      entry.endsWith('/opencode-agent-tmux'),
+  );
+
+  if (!hasTmuxPlugin) {
     deduped.push('opencode-agent-tmux');
   }
 

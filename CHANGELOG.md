@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.5] - 2025-02-04
+
+### Fixed
+
+- **Plugin duplicate detection**: Fixed `update-plugins.ts` to properly detect local path installations (`/opentmux`) in addition to registry names, preventing duplicate plugin entries
+- **Runtime duplicate prevention**: Added `isInitialized` guard in plugin entry point to prevent duplicate initialization if plugin is loaded multiple times
+- **Race condition prevention**: Added `pendingSessions` Set to prevent race conditions when multiple child sessions spawn simultaneously
+- **Pane layout fixes**: Fixed main-vertical-multi-column layout to correctly identify the main pane and agent panes
+
 ## [1.4.0] - 2026-02-03
 
 ### Features

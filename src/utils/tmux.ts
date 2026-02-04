@@ -242,18 +242,11 @@ async function tryApplyMainVerticalMultiColumnLayout(
   const currentPaneId = await getCurrentPaneId(tmux);
   if (!currentPaneId) return false;
 
-  const panesBefore = await listPaneIds(tmux);
-  if (panesBefore.length < 2) return false;
-
-  if (panesBefore[0] && panesBefore[0] !== currentPaneId) {
-    await spawnAsyncFn([tmux, 'swap-pane', '-s', currentPaneId, '-t', panesBefore[0]]);
-  }
-
   const panes = await listPaneIds(tmux);
   if (panes.length < 2) return false;
 
-  const mainPaneId = panes[0] ?? currentPaneId;
-  const agentPaneIds = panes.slice(1);
+  const mainPaneId = panes.includes(currentPaneId) ? currentPaneId : (panes[0] ?? currentPaneId);
+  const agentPaneIds = panes.filter((id) => id !== mainPaneId);
   const columns = groupAgentsByColumn(agentPaneIds, maxAgentsPerColumn);
   
   if (columns.length === 0) {

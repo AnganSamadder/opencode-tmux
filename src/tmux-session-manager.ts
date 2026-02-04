@@ -31,6 +31,7 @@ export class TmuxSessionManager {
   private tmuxConfig: TmuxConfig;
   private serverUrl: string;
   private sessions = new Map<string, TrackedSession>();
+  private pendingSessions = new Set<string>();
   private pollInterval?: ReturnType<typeof setInterval>;
   private enabled = false;
   private shuttingDown = false;
@@ -96,38 +97,44 @@ export class TmuxSessionManager {
     const parentId = info.parentID;
     const title = info.title ?? 'Subagent';
 
-    if (this.sessions.has(sessionId)) {
-      log('[tmux-session-manager] session already tracked', { sessionId });
+    if (this.sessions.has(sessionId) || this.pendingSessions.has(sessionId)) {
+      log('[tmux-session-manager] session already tracked or pending', { sessionId });
       return;
     }
 
-    log('[tmux-session-manager] child session created, spawning pane', {
-      sessionId,
-      parentId,
-      title,
-    });
+    this.pendingSessions.add(sessionId);
 
-    const paneResult = await this.spawnQueue.enqueue({ sessionId, title });
-
-    if (paneResult.success && paneResult.paneId) {
-      const now = Date.now();
-      this.sessions.set(sessionId, {
+    try {
+      log('[tmux-session-manager] child session created, spawning pane', {
         sessionId,
-        paneId: paneResult.paneId,
         parentId,
         title,
-        createdAt: now,
-        lastSeenAt: now,
       });
 
-      log('[tmux-session-manager] pane spawned', {
-        sessionId,
-        paneId: paneResult.paneId,
-      });
+      const paneResult = await this.spawnQueue.enqueue({ sessionId, title });
 
-      this.startPolling();
-    } else {
-      log('[tmux-session-manager] failed to spawn pane', { sessionId });
+      if (paneResult.success && paneResult.paneId) {
+        const now = Date.now();
+        this.sessions.set(sessionId, {
+          sessionId,
+          paneId: paneResult.paneId,
+          parentId,
+          title,
+          createdAt: now,
+          lastSeenAt: now,
+        });
+
+        log('[tmux-session-manager] pane spawned', {
+          sessionId,
+          paneId: paneResult.paneId,
+        });
+
+        this.startPolling();
+      } else {
+        log('[tmux-session-manager] failed to spawn pane', { sessionId });
+      }
+    } finally {
+      this.pendingSessions.delete(sessionId);
     }
   }
 

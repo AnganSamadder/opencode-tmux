@@ -54,7 +54,20 @@ function loadConfig(directory: string): PluginConfig {
   return defaultConfig;
 }
 
+let isInitialized = false;
+
 const OpencodeAgentTmux: Plugin = async (ctx) => {
+  if (isInitialized) {
+    log('[plugin] duplicate initialization detected, skipping', {
+      directory: ctx.directory,
+    });
+    return {
+      name: 'opentmux',
+      event: async () => {},
+    };
+  }
+  isInitialized = true;
+
   const config = loadConfig(ctx.directory);
 
   const tmuxConfig: TmuxConfig = {
