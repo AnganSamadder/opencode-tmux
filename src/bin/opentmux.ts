@@ -514,6 +514,11 @@ async function main() {
 }
 
 main().catch(err => {
+  // Handle AbortError gracefully (user cancelled)
+  if (err.name === 'AbortError' || err.code === 20) {
+    exit(0);
+  }
+
   log('FATAL ERROR:', err.message, err.stack);
   console.error(err);
   exit(1);

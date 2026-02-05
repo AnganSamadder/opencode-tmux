@@ -5,6 +5,7 @@
     "": {
       "name": "opencode-subagent-tmux",
       "dependencies": {
+        "proper-lockfile": "^4.1.2",
         "zod": "^3.24.1",
       },
       "devDependencies": {
@@ -160,6 +161,8 @@
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
+    "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
+
     "joycon": ["joycon@3.1.1", "", {}, "sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw=="],
 
     "lilconfig": ["lilconfig@3.1.3", "", {}, "sha512-/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw=="],
@@ -190,11 +193,17 @@
 
     "postcss-load-config": ["postcss-load-config@6.0.1", "", { "dependencies": { "lilconfig": "^3.1.1" }, "peerDependencies": { "jiti": ">=1.21.0", "postcss": ">=8.0.9", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["jiti", "postcss", "tsx", "yaml"] }, "sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g=="],
 
+    "proper-lockfile": ["proper-lockfile@4.1.2", "", { "dependencies": { "graceful-fs": "^4.2.4", "retry": "^0.12.0", "signal-exit": "^3.0.2" } }, "sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA=="],
+
     "readdirp": ["readdirp@4.1.2", "", {}, "sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg=="],
 
     "resolve-from": ["resolve-from@5.0.0", "", {}, "sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw=="],
 
+    "retry": ["retry@0.12.0", "", {}, "sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow=="],
+
     "rollup": ["rollup@4.56.0", "", { "dependencies": { "@types/estree": "1.0.8" }, "optionalDependencies": { "@rollup/rollup-android-arm-eabi": "4.56.0", "@rollup/rollup-android-arm64": "4.56.0", "@rollup/rollup-darwin-arm64": "4.56.0", "@rollup/rollup-darwin-x64": "4.56.0", "@rollup/rollup-freebsd-arm64": "4.56.0", "@rollup/rollup-freebsd-x64": "4.56.0", "@rollup/rollup-linux-arm-gnueabihf": "4.56.0", "@rollup/rollup-linux-arm-musleabihf": "4.56.0", "@rollup/rollup-linux-arm64-gnu": "4.56.0", "@rollup/rollup-linux-arm64-musl": "4.56.0", "@rollup/rollup-linux-loong64-gnu": "4.56.0", "@rollup/rollup-linux-loong64-musl": "4.56.0", "@rollup/rollup-linux-ppc64-gnu": "4.56.0", "@rollup/rollup-linux-ppc64-musl": "4.56.0", "@rollup/rollup-linux-riscv64-gnu": "4.56.0", "@rollup/rollup-linux-riscv64-musl": "4.56.0", "@rollup/rollup-linux-s390x-gnu": "4.56.0", "@rollup/rollup-linux-x64-gnu": "4.56.0", "@rollup/rollup-linux-x64-musl": "4.56.0", "@rollup/rollup-openbsd-x64": "4.56.0", "@rollup/rollup-openharmony-arm64": "4.56.0", "@rollup/rollup-win32-arm64-msvc": "4.56.0", "@rollup/rollup-win32-ia32-msvc": "4.56.0", "@rollup/rollup-win32-x64-gnu": "4.56.0", "@rollup/rollup-win32-x64-msvc": "4.56.0", "fsevents": "~2.3.2" }, "bin": { "rollup": "dist/bin/rollup" } }, "sha512-9FwVqlgUHzbXtDg9RCMgodF3Ua4Na6Gau+Sdt9vyCN4RhHfVKX2DCHy3BjMLTDd47ITDhYAnTwGulWTblJSDLg=="],
+
+    "signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
 
     "source-map": ["source-map@0.7.6", "", {}, "sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ=="],
 
