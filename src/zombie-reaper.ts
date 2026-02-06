@@ -93,14 +93,11 @@ export class ZombieReaper {
       }
 
       if (activeSessions === null) {
-         // Server unreachable.
-         // For manual reap, if server is dead, clients are zombies.
-         // Let's kill them but warn.
-         console.log(`Server ${url} unreachable. Treating ${procs.length} clients as orphans.`);
-         for (const p of procs) {
-           await reaper.forceKill(p.pid);
-           reapedCount++;
-         }
+         // Server unreachable or returned invalid data.
+         // For manual reap, if we can't verify status, we should be FAIL-SAFE and NOT kill.
+         // Killing blindly assumes "network error = server dead", but it could be "server busy" or "auth error".
+         console.warn(`⚠️  Warning: Could not fetch active sessions from ${url}. Skipping cleanup for this server to avoid killing active agents.`);
+         // DO NOT kill.
          continue;
       }
 
@@ -311,10 +308,23 @@ export class ZombieReaper {
       if (!payload || typeof payload !== 'object') return null;
 
       const data = (payload as { data?: unknown }).data;
+      // If data is missing/undefined, we can't assume anything -> return null to trigger fail-safe
       if (!data || typeof data !== 'object') return null;
 
+      // Handle array format (some API versions might return array of sessions)
       if (Array.isArray(data)) {
-         return new Set(); 
+         // If it's an array of objects with id?
+         // We don't know the shape for sure, so fail-safe is better than assuming empty.
+         // But if it IS an array of sessions, we should extract IDs.
+         // Let's try to map 'id' or 'sessionId' if present.
+         const ids = data.map((item: any) => item?.id || item?.sessionId).filter(Boolean);
+         if (ids.length > 0) return new Set(ids);
+         
+         // If array is empty, it means no sessions.
+         if (data.length === 0) return new Set();
+
+         // If array has items but no recognizable IDs, fail-safe.
+         return null;
       }
       
       return new Set(Object.keys(data));
