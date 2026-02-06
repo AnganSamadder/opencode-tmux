@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-06
+
+### Added
+- **Port Rotation**: New `rotate_port` config option (default: `false`). When enabled, automatically kills the oldest session to make room for new ones when the port limit is reached.
+- **Configurable Port Range**: New `max_ports` config option (default: `10`) to control how many concurrent sessions are allowed.
+- **Aggressive Reaping**: The `-reap` command now aggressively detects and kills stuck servers that fail to respond to health checks.
+
+### Fixed
+- **Suicide Prevention**: `-reap` now whitelists the current session's port to prevent accidental self-termination.
+- **Reap Command Logic**: Fixed a bug where `oc -reap` would fail with "No available ports" if all ports were occupied.
+- **Health Check Robustness**: Added retry logic (3 attempts) to server health checks to avoid false positives on busy servers.
+
 ## [1.4.7] - 2026-02-05
 
 ### Fixed

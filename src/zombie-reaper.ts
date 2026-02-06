@@ -4,8 +4,11 @@ import {
   isProcessAlive,
   safeKill,
   waitForProcessExit,
+  getListeningPids,
 } from './utils/process';
 import { log } from './utils/logger';
+
+const OPENCODE_PORT_START = 4096;
 
 export interface ReaperOptions {
   enabled: boolean;
@@ -14,6 +17,7 @@ export interface ReaperOptions {
   gracePeriodMs: number;
   autoSelfDestruct?: boolean;
   selfDestructTimeoutMs?: number;
+  maxPorts?: number;
 }
 
 interface ZombieCandidate {
@@ -56,6 +60,18 @@ export class ZombieReaper {
 
     log('[zombie-reaper] starting manual global reap');
     const reaper = new ZombieReaper('', opts); // Dummy URL, we won't use instance scan
+    
+    // 1. Reap inactive servers first
+    // Default to 10 ports if not specified
+    const maxPorts = options.maxPorts || 10;
+    const endPort = OPENCODE_PORT_START + maxPorts;
+    
+    const reapedServers = await ZombieReaper.reapServers(OPENCODE_PORT_START, endPort);
+    if (reapedServers > 0) {
+      console.log(`Reaped ${reapedServers} inactive opencode servers.`);
+    }
+
+    // 2. Reap zombie attach processes
     const processes = await reaper.findAllAttachProcesses();
 
     if (processes.length === 0) {
@@ -94,10 +110,15 @@ export class ZombieReaper {
 
       if (activeSessions === null) {
          // Server unreachable or returned invalid data.
-         // For manual reap, if we can't verify status, we should be FAIL-SAFE and NOT kill.
-         // Killing blindly assumes "network error = server dead", but it could be "server busy" or "auth error".
-         console.warn(`⚠️  Warning: Could not fetch active sessions from ${url}. Skipping cleanup for this server to avoid killing active agents.`);
-         // DO NOT kill.
+         // For manual reap, we assume stuck server and kill associated attach processes.
+         console.warn(`⚠️  Warning: Could not fetch active sessions from ${url}. Server likely stuck.`);
+         console.warn(`[zombie-reaper] Cleaning up ${procs.length} zombies attached to stuck server.`);
+         
+         for (const p of procs) {
+            console.log(`🧟 Zombie detected (Stuck Server): PID ${p.pid} (Session ${p.sessionId} on ${url})`);
+            await reaper.forceKill(p.pid);
+            reapedCount++;
+         }
          continue;
       }
 
@@ -301,15 +322,48 @@ export class ZombieReaper {
     const timeout = setTimeout(() => controller.abort(), 2000);
 
     try {
-      const response = await fetch(statusUrl, { signal: controller.signal }).catch(() => null);
-      if (!response?.ok) return null;
+      const response = await fetch(statusUrl, { signal: controller.signal }).catch(err => {
+        // Log network errors (like ECONNREFUSED) for debugging
+        if (process.env.DEBUG || process.env.VERBOSE) {
+           console.error(`[zombie-reaper] Fetch error for ${statusUrl}:`, err);
+        }
+        return null;
+      });
+      if (!response?.ok) {
+        if (process.env.DEBUG || process.env.VERBOSE && response) {
+           console.error(`[zombie-reaper] Server returned ${response.status} ${response.statusText} for ${statusUrl}`);
+        }
+        return null;
+      }
 
       const payload = (await response.json().catch(() => null)) as unknown;
       if (!payload || typeof payload !== 'object') return null;
 
       const data = (payload as { data?: unknown }).data;
+      
+      // Support raw object format (legacy or direct map) where top-level IS the map
+      // Some server versions might return { ses_id: { type: 'busy' } } directly
+      if (!data && typeof payload === 'object' && !Array.isArray(payload)) {
+         // Heuristic: check if keys look like session IDs or if it has known props
+         const keys = Object.keys(payload);
+         if (keys.length > 0 && keys.every(k => k.startsWith('ses_') || k.startsWith('session_'))) {
+            return new Set(keys);
+         }
+      }
+
       // If data is missing/undefined, we can't assume anything -> return null to trigger fail-safe
-      if (!data || typeof data !== 'object') return null;
+      if (!data || typeof data !== 'object') {
+        // Fallback: if payload itself is the map (as seen in curl output)
+        if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+             // Validate it looks like a session map
+             const keys = Object.keys(payload as object);
+             // If it has keys like "ses_...", treat as valid
+             if (keys.some(k => k.startsWith('ses_'))) {
+                 return new Set(keys);
+             }
+        }
+        return null;
+      }
 
       // Handle array format (some API versions might return array of sessions)
       if (Array.isArray(data)) {
@@ -369,5 +423,69 @@ export class ZombieReaper {
     }
     
     this.candidates.delete(proc.pid);
+  }
+
+  static async reapServers(startPort: number, endPort: number): Promise<number> {
+    let reapedCount = 0;
+    console.log(`Scanning ports ${startPort}-${endPort} for inactive servers...`);
+
+    const currentSessionPort = process.env.OPENCODE_PORT ? parseInt(process.env.OPENCODE_PORT, 10) : null;
+
+    for (let port = startPort; port <= endPort; port++) {
+      if (currentSessionPort && port === currentSessionPort) {
+        console.log(`[zombie-reaper] Skipping cleanup for port ${port} (Current Session)`);
+        continue;
+      }
+
+      const pids = getListeningPids(port);
+      if (pids.length === 0) continue;
+
+      for (const pid of pids) {
+        // Verify it's an opencode process (safety check via command name)
+        const cmd = getProcessCommand(pid) || '';
+        // We look for 'opencode' or 'node' (since it might be running via node)
+        // If it's some other random service, we shouldn't touch it.
+        const isSuspicious = cmd.includes('opencode') || cmd.includes('node') || cmd.includes('bun');
+        if (!isSuspicious) continue;
+
+        // Verify via HTTP
+        const url = `http://127.0.0.1:${port}`;
+        // Create a temporary reaper instance to use fetchActiveSessions
+        const reaper = new ZombieReaper(url, { 
+            enabled: true, intervalMs: 0, minZombieChecks: 0, gracePeriodMs: 0 
+        });
+        
+          try {
+            // Retry logic: try 3 times with delay
+            let sessions = null;
+            for (let i = 0; i < 3; i++) {
+                sessions = await reaper.fetchActiveSessions(url);
+                if (sessions !== null) break;
+                if (i < 2) await new Promise(r => setTimeout(r, 1000));
+            }
+            
+            // If sessions is null, it means fetch failed (unreachable/stuck)
+            if (sessions === null) {
+                console.log(`[zombie-reaper] Server on port ${port} (PID ${pid}) is unreachable/stuck after 3 retries. Killing...`);
+                safeKill(pid, 'SIGTERM');
+                reapedCount++;
+                continue;
+            }
+
+            // If sessions is empty (reachable but no agents)
+            if (sessions.size === 0) {
+                console.log(`[zombie-reaper] Found inactive server on port ${port} (PID ${pid}). Killing...`);
+                safeKill(pid, 'SIGTERM');
+                reapedCount++;
+            }
+        } catch (e) {
+            // Should be unreachable due to fetchActiveSessions swallowing errors, but safe fallback
+            console.log(`[zombie-reaper] Server on port ${port} (PID ${pid}) error. Killing...`);
+            safeKill(pid, 'SIGTERM');
+            reapedCount++;
+        }
+      }
+    }
+    return reapedCount;
   }
 }

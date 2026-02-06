@@ -5,7 +5,7 @@ import { platform } from 'node:os';
  * Safely executes a shell command and returns the output.
  * Returns null if the command fails or throws.
  */
-function safeExec(command: string): string | null {
+export function safeExec(command: string): string | null {
   try {
     const output = execSync(command, {
       encoding: 'utf-8',
@@ -18,6 +18,20 @@ function safeExec(command: string): string | null {
 }
 
 /**
+ * Gets PIDs listening on a specific TCP port.
+ */
+export function getListeningPids(port: number): number[] {
+  if (platform() === 'win32') return [];
+  const output = safeExec(`lsof -nP -iTCP:${port} -sTCP:LISTEN -t`);
+  if (!output) return [];
+
+  return output
+    .split('\n')
+    .map((value) => Number.parseInt(value.trim(), 10))
+    .filter((value) => Number.isFinite(value));
+}
+
+/**
  * Checks if a process with the given PID is currently running.
  */
 export function isProcessAlive(pid: number): boolean {
@@ -27,6 +41,16 @@ export function isProcessAlive(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Gets the start time of a process in milliseconds since epoch.
+ */
+export function getProcessStartTime(pid: number): number | null {
+  // -o lstart gives "Wed Feb  5 14:00:00 2025"
+  const output = safeExec(`ps -p ${pid} -o lstart=`);
+  if (!output) return null;
+  return Date.parse(output);
 }
 
 /**

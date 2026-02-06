@@ -28,6 +28,10 @@ export const TmuxConfigSchema = z.object({
   // Auto self-destruct for abandoned servers
   reaper_auto_self_destruct: z.boolean().default(true),
   reaper_self_destruct_timeout_ms: z.number().default(60 * 60 * 1000), // 1 hour
+  
+  // Port management
+  rotate_port: z.boolean().default(false),
+  max_ports: z.number().min(1).max(100).default(10),
 });
 
 export type TmuxConfig = z.infer<typeof TmuxConfigSchema>;
@@ -52,6 +56,10 @@ export const PluginConfigSchema = z.object({
   // Auto self-destruct for abandoned servers
   reaper_auto_self_destruct: z.boolean().default(true),
   reaper_self_destruct_timeout_ms: z.number().default(60 * 60 * 1000), // 1 hour
+
+  // Port management
+  rotate_port: z.boolean().default(false),
+  max_ports: z.number().min(1).max(100).default(10),
 });
 
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;

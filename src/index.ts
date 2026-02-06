@@ -1,13 +1,8 @@
 import type { Plugin } from './types';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import {
-  PluginConfigSchema,
-  type PluginConfig,
-  type TmuxConfig,
-} from './config';
+import { type TmuxConfig } from './config';
 import { TmuxSessionManager } from './tmux-session-manager';
 import { log, startTmuxCheck } from './utils';
+import { loadConfig } from './utils/config-loader';
 
 function detectServerUrl(): string {
   if (process.env.OPENCODE_PORT) {
@@ -15,43 +10,6 @@ function detectServerUrl(): string {
   }
 
   return 'http://localhost:4096';
-}
-
-function loadConfig(directory: string): PluginConfig {
-  const configPaths = [
-    path.join(directory, 'opentmux.json'),
-    path.join(directory, 'opencode-agent-tmux.json'), // Fallback
-    path.join(
-      process.env.HOME ?? '',
-      '.config',
-      'opencode',
-      'opentmux.json',
-    ),
-  ];
-
-  for (const configPath of configPaths) {
-    try {
-      if (fs.existsSync(configPath)) {
-        const content = fs.readFileSync(configPath, 'utf-8');
-        const parsed = JSON.parse(content);
-        const result = PluginConfigSchema.safeParse(parsed);
-        if (result.success) {
-          log('[plugin] loaded config', { configPath, config: result.data });
-          return result.data;
-        }
-        log('[plugin] config parse error', {
-          configPath,
-          error: result.error.message,
-        });
-      }
-    } catch (err) {
-      log('[plugin] config load error', { configPath, error: String(err) });
-    }
-  }
-
-  const defaultConfig = PluginConfigSchema.parse({});
-  log('[plugin] using default config', { config: defaultConfig });
-  return defaultConfig;
 }
 
 let isInitialized = false;
@@ -84,6 +42,8 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
     reaper_grace_period_ms: config.reaper_grace_period_ms,
     reaper_auto_self_destruct: config.reaper_auto_self_destruct,
     reaper_self_destruct_timeout_ms: config.reaper_self_destruct_timeout_ms,
+    rotate_port: config.rotate_port,
+    max_ports: config.max_ports,
   };
 
   const serverUrl = ctx.serverUrl?.toString() || detectServerUrl();

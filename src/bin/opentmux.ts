@@ -8,9 +8,21 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { ZombieReaper } from '../zombie-reaper';
+import { loadConfig } from '../utils/config-loader';
+import { 
+  safeExec, 
+  getListeningPids, 
+  isProcessAlive, 
+  getProcessCommand, 
+  safeKill,
+  waitForProcessExit,
+  getProcessStartTime
+} from '../utils/process';
 
-const OPENCODE_PORT_START = parseInt(env.OPENCODE_PORT || '4096', 10);
-const OPENCODE_PORT_MAX = OPENCODE_PORT_START + 10;
+// Load config
+const config = loadConfig();
+const OPENCODE_PORT_START = config.port || parseInt(env.OPENCODE_PORT || '4096', 10);
+const OPENCODE_PORT_MAX = OPENCODE_PORT_START + (config.max_ports || 10);
 const LOG_FILE = '/tmp/opentmux.log';
 const HEALTH_TIMEOUT_MS = 1000;
 
@@ -90,27 +102,6 @@ function checkPort(port: number): Promise<boolean> {
   });
 }
 
-function isProcessAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function safeExec(command: string): string | null {
-  try {
-    const output = execSync(command, {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    return output.trim();
-  } catch {
-    return null;
-  }
-}
-
 function getTmuxPanePids(): Set<number> {
   if (!hasTmux()) return new Set();
 
@@ -140,22 +131,6 @@ async function isOpencodeHealthy(port: number): Promise<boolean> {
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function getListeningPids(port: number): number[] {
-  if (platform === 'win32') return [];
-  const output = safeExec(`lsof -nP -iTCP:${port} -sTCP:LISTEN -t`);
-  if (!output) return [];
-
-  return output
-    .split('\n')
-    .map((value) => Number.parseInt(value.trim(), 10))
-    .filter((value) => Number.isFinite(value));
-}
-
-function getProcessCommand(pid: number): string | null {
-  const output = safeExec(`ps -p ${pid} -o command=`);
-  return output && output.length > 0 ? output : null;
 }
 
 function getProcessStat(pid: number): string | null {
@@ -437,13 +412,60 @@ async function main() {
 
   spawnPluginUpdater();
 
-  const port = await findAvailablePort();
+  let port = await findAvailablePort();
   log('Found available port:', port);
   
   if (!port) {
-    console.error('Error: No available ports found in range 4096-4106.');
-    log('ERROR: No available ports');
-    exit(1);
+    if (config.rotate_port) {
+      log('Port rotation enabled. Finding oldest session to kill...');
+      let oldestPid: number | null = null;
+      let oldestTime = Date.now();
+      let targetPort = -1;
+
+      for (let p = OPENCODE_PORT_START; p <= OPENCODE_PORT_MAX; p++) {
+        const pids = getListeningPids(p);
+        for (const pid of pids) {
+            const cmd = getProcessCommand(pid);
+            if (cmd && (cmd.includes('opencode') || cmd.includes('node') || cmd.includes('bun'))) {
+                const startTime = getProcessStartTime(pid);
+                if (startTime && startTime < oldestTime) {
+                    oldestTime = startTime;
+                    oldestPid = pid;
+                    targetPort = p;
+                }
+            }
+        }
+      }
+
+      if (oldestPid && targetPort !== -1) {
+          log('Rotating port:', targetPort, 'Killing oldest PID:', oldestPid);
+          console.log(`♻️  Port rotation: Killing oldest session (PID ${oldestPid}) on port ${targetPort} to make room...`);
+          safeKill(oldestPid, 'SIGTERM');
+          await waitForProcessExit(oldestPid, 2000);
+          if (isProcessAlive(oldestPid)) {
+             safeKill(oldestPid, 'SIGKILL');
+             await waitForProcessExit(oldestPid, 1000);
+          }
+          
+          // Re-check the port to confirm it's free
+          if (await checkPort(targetPort)) {
+              port = targetPort;
+              log('Port reclaimed successfully:', port);
+          } else {
+              console.error(`⚠️  Failed to reclaim port ${targetPort} even after killing PID ${oldestPid}.`);
+              exit(1);
+          }
+      } else {
+          console.error('Error: Could not find any valid OpenCode sessions to rotate.');
+          exit(1);
+      }
+    } else {
+      console.error(`Error: No available ports found in range ${OPENCODE_PORT_START}-${OPENCODE_PORT_MAX}.`);
+      console.error('Tip: Run "opentmux -reap" to clean up stuck sessions.');
+      console.error('     Or enable "rotate_port": true in config to automatically recycle oldest sessions.');
+      log('ERROR: No available ports');
+      exit(1);
+    }
   }
 
   const env2 = { ...process.env };
