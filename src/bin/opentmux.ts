@@ -333,7 +333,15 @@ function hasTmux(): boolean {
 }
 
 async function main() {
-  const args = argv.slice(2);
+  
+  // Check if running as a script (node script.js) or a compiled binary
+  // In script mode: argv[0]=node, argv[1]=script, argv[2]=arg1 -> slice(2)
+  // In binary mode: argv[0]=binary, argv[1]=arg1 -> slice(1)
+  // Use regex to securely match only actual node/bun executables
+  const isRuntime = /\/?(node|bun)(\.exe)?$/i.test(argv[0]);
+  const isScriptFile = argv[1] ? /\.(js|ts)$/.test(argv[1]) : false;
+  // Both runtime AND script file must be present for script mode
+  const args = (isRuntime && isScriptFile) ? argv.slice(2) : argv.slice(1);
 
   // Check for opentmux-specific flags first
   if (args.includes('--reap') || args.includes('-reap')) {
@@ -348,7 +356,7 @@ async function main() {
   // 3. Are help/version flags
   const NON_TUI_COMMANDS = [
     // Core CLI commands
-    'auth', 'config', 'plugins', 'update', 'completion', 'stats',
+    'auth', 'config', 'plugins', 'update', 'upgrade', 'completion', 'stats',
     'run', 'exec', 'doctor', 'debug', 'clean', 'uninstall',
     
     // Agent/Session management

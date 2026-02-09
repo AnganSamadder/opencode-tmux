@@ -62,6 +62,8 @@ function createTmuxConfig(overrides?: Partial<TmuxConfig>): TmuxConfig {
     reaper_grace_period_ms: 5000,
     reaper_auto_self_destruct: true,
     reaper_self_destruct_timeout_ms: 600000,
+    rotate_port: false,
+    max_ports: 10,
     ...overrides,
   };
 }

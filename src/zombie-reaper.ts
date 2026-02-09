@@ -330,7 +330,7 @@ export class ZombieReaper {
         return null;
       });
       if (!response?.ok) {
-        if (process.env.DEBUG || process.env.VERBOSE && response) {
+        if ((process.env.DEBUG || process.env.VERBOSE) && response) {
            console.error(`[zombie-reaper] Server returned ${response.status} ${response.statusText} for ${statusUrl}`);
         }
         return null;
@@ -429,14 +429,7 @@ export class ZombieReaper {
     let reapedCount = 0;
     console.log(`Scanning ports ${startPort}-${endPort} for inactive servers...`);
 
-    const currentSessionPort = process.env.OPENCODE_PORT ? parseInt(process.env.OPENCODE_PORT, 10) : null;
-
     for (let port = startPort; port <= endPort; port++) {
-      if (currentSessionPort && port === currentSessionPort) {
-        console.log(`[zombie-reaper] Skipping cleanup for port ${port} (Current Session)`);
-        continue;
-      }
-
       const pids = getListeningPids(port);
       if (pids.length === 0) continue;
 
@@ -467,21 +460,65 @@ export class ZombieReaper {
             // If sessions is null, it means fetch failed (unreachable/stuck)
             if (sessions === null) {
                 console.log(`[zombie-reaper] Server on port ${port} (PID ${pid}) is unreachable/stuck after 3 retries. Killing...`);
-                safeKill(pid, 'SIGTERM');
+                try {
+                  safeKill(pid, 'SIGTERM');
+                  const exited = await waitForProcessExit(pid, 2000);
+                  if (!exited) {
+                    console.log(`[zombie-reaper] Force killing server on port ${port} (PID ${pid})...`);
+                    safeKill(pid, 'SIGKILL');
+                    await waitForProcessExit(pid, 1000);
+                    if (isProcessAlive(pid)) {
+                      console.error(`[zombie-reaper] CRITICAL: Failed to kill PID ${pid} on port ${port}`);
+                    }
+                  }
+                } catch (err) {
+                  console.error(`[zombie-reaper] Error killing PID ${pid}:`, err);
+                }
                 reapedCount++;
+                continue;
+            }
+
+            // If sessions exist and non-empty, protect servers with active sessions
+            if (sessions.size > 0) {
+                console.log(`[zombie-reaper] Skipping port ${port} (Has ${sessions.size} active session(s))`);
                 continue;
             }
 
             // If sessions is empty (reachable but no agents)
             if (sessions.size === 0) {
                 console.log(`[zombie-reaper] Found inactive server on port ${port} (PID ${pid}). Killing...`);
-                safeKill(pid, 'SIGTERM');
+                try {
+                  safeKill(pid, 'SIGTERM');
+                  const exited = await waitForProcessExit(pid, 2000);
+                  if (!exited) {
+                    console.log(`[zombie-reaper] Force killing server on port ${port} (PID ${pid})...`);
+                    safeKill(pid, 'SIGKILL');
+                    await waitForProcessExit(pid, 1000);
+                    if (isProcessAlive(pid)) {
+                      console.error(`[zombie-reaper] CRITICAL: Failed to kill PID ${pid} on port ${port}`);
+                    }
+                  }
+                } catch (err) {
+                  console.error(`[zombie-reaper] Error killing PID ${pid}:`, err);
+                }
                 reapedCount++;
             }
         } catch (e) {
-            // Should be unreachable due to fetchActiveSessions swallowing errors, but safe fallback
             console.log(`[zombie-reaper] Server on port ${port} (PID ${pid}) error. Killing...`);
-            safeKill(pid, 'SIGTERM');
+            try {
+              safeKill(pid, 'SIGTERM');
+              const exited = await waitForProcessExit(pid, 2000);
+              if (!exited) {
+                console.log(`[zombie-reaper] Force killing server on port ${port} (PID ${pid})...`);
+                safeKill(pid, 'SIGKILL');
+                await waitForProcessExit(pid, 1000);
+                if (isProcessAlive(pid)) {
+                  console.error(`[zombie-reaper] CRITICAL: Failed to kill PID ${pid} on port ${port}`);
+                }
+              }
+            } catch (err) {
+              console.error(`[zombie-reaper] Error killing PID ${pid}:`, err);
+            }
             reapedCount++;
         }
       }
