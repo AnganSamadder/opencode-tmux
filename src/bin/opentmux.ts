@@ -339,7 +339,7 @@ async function main() {
   // In binary mode: argv[0]=binary, argv[1]=arg1 -> slice(1)
   // Use regex to securely match only actual node/bun executables
   const isRuntime = /\/?(node|bun)(\.exe)?$/i.test(argv[0]);
-  const isScriptFile = argv[1] ? /\.(js|ts)$/.test(argv[1]) : false;
+  const isScriptFile = argv[1] ? /\.(js|ts)$/.test(argv[1]) || argv[1].includes('opentmux') : false;
   // Both runtime AND script file must be present for script mode
   const args = (isRuntime && isScriptFile) ? argv.slice(2) : argv.slice(1);
 
