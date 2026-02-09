@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/AnganSamadder/opentmux/compare/v1.4.4...v1.5.0) (2026-02-09)
+
+
+### Features
+
+* release v1.5.0 - port rotation and aggressive reaping ([e168a83](https://github.com/AnganSamadder/opentmux/commit/e168a83a78b7ec00cabf1f7c8260d3555b7c2eb2))
+
+
+### Bug Fixes
+
+* improve argument parsing to correctly handle -reap and CLI commands ([1228616](https://github.com/AnganSamadder/opentmux/commit/12286165cfebb1948992b8584127423d4c20652b))
+* improve security and achieve full type safety ([f05a9d6](https://github.com/AnganSamadder/opentmux/commit/f05a9d67ffe8a216ff4e3aba747f5f0f37336d3d))
+* make zombie reaper fail-safe and robust to API changes ([ee71ead](https://github.com/AnganSamadder/opentmux/commit/ee71eadcd4084bb8c7ded2d0e3ab54a8b725d1ad))
+* update release workflow and prevent accidental major version bumps ([0a5258a](https://github.com/AnganSamadder/opentmux/commit/0a5258a2ddd58635ff418b039d56c40e6766f51a))
+
 ## [1.5.0] - 2026-02-06
 
 ### Added
