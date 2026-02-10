@@ -4,10 +4,14 @@
 [![npm downloads](https://img.shields.io/npm/dt/opentmux)](https://www.npmjs.com/package/opentmux)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An [OpenCode](https://opencode.ai) plugin that provides **smart tmux integration** for viewing agent execution in real-time. Automatically spawns panes, streams output, and manages your terminal workspace.
+An [OpenCode](https://opencode.ai) plugin that provides **smart tmux integration** for viewing agent execution in real-time. It now uses a **Go-first runtime** (with a thin TypeScript compatibility shim) for lower overhead and stronger process/concurrency control.
+
+> **Warning:** The Go rewrite is still in active testing/validation.  
+> Use `refactor/go-rewrite` for evaluation, but expect iterative changes while parity hardening is in progress.
 
 - **Agent-Agnostic**: Works with oh-my-opencode, omoc-slim, or vanilla OpenCode.
 - **Cross-Platform**: Full support for **macOS**, **Linux**, and **Windows** (via PowerShell or WSL).
+- **Go Runtime Core**: Session management, spawn queue, tmux control, and process reaping are handled in Go.
 
 ![Opencode Agent Tmux Demo](https://raw.githubusercontent.com/angansamadder/opentmux/main/assets/demo.png)
 *Note: The demo shows the "sisyphus" agent from [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode), but this plugin supports ALL OpenCode subagents.*
@@ -75,13 +79,21 @@ To install this plugin, please perform the following steps for the user:
 
 For contributors working on this plugin locally, see [LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for setup instructions.
 
-### Go Runtime Rewrite (Branch: `refactor/go-rewrite`)
+> **Go rewrite branch:** The Go-first runtime currently lives on `refactor/go-rewrite`.  
+> Switch with: `git checkout refactor/go-rewrite`
 
-This branch ships a Go-first runtime with a thin TypeScript compatibility shim.
+### Runtime Architecture
 
-- `src/index.ts` starts/controls `opentmuxd` via `opentmuxctl`
-- `src/bin/opentmux.ts` delegates to the Go CLI wrapper binary
-- Legacy TypeScript runtime remains as fallback while migration is validated
+`opentmux` now runs on a Go-first runtime with a thin TypeScript compatibility shim.
+
+- Go binaries:
+  - `opentmux` (CLI wrapper)
+  - `opentmuxd` (runtime daemon)
+  - `opentmuxctl` (control client used by shim)
+- TS shim:
+  - `src/index.ts` controls daemon lifecycle and forwards events
+  - `src/bin/opentmux.ts` delegates CLI execution to Go binary
+- Legacy TS runtime fallback remains available for compatibility safety.
 
 Build steps:
 
@@ -98,6 +110,7 @@ bun run bench:burst
 - **Automatic Tmux Pane Spawning**: When any agent starts, automatically spawns a tmux pane
 - **Live Streaming**: Each pane runs `opencode attach` to show real-time agent output
 - **Auto-Cleanup**: Panes automatically close when agents complete
+- **High-Performance Queueing**: Go-based spawn queue with retry/backoff, stale protection, and dedupe controls
 - **Configurable Layout**: Support multiple tmux layouts (`main-vertical`, `tiled`, etc.)
 - **Multi-Port Support**: Automatically finds available ports (4096-4106) when running multiple instances
 - **Smart Wrapper**: Automatically detects if you are in tmux; if not, launches a session for you.
@@ -129,7 +142,7 @@ You can customize behavior by creating `~/.config/opencode/opentmux.json`:
 ### Panes Not Spawning
 1. Verify you're inside tmux: `echo $TMUX`
 2. Check tmux is installed: `which tmux` (or `where tmux` on Windows)
-3. Check logs: `cat /tmp/opentmux.log`
+3. Check logs: `cat /tmp/opencode-agent-tmux.log`
 
 ### Server Not Found
 Make sure OpenCode is started with the `--port` flag matching your config (the wrapper does this automatically).
