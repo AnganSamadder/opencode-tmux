@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3](https://github.com/AnganSamadder/opentmux/compare/v1.5.2...v1.5.3) (2026-02-10)
+
+
+### Bug Fixes
+
+* correct GitHub Actions workflows for OIDC publishing ([2b351c0](https://github.com/AnganSamadder/opentmux/commit/2b351c048cbaabfa57b6c0cbb8a4b33eae96109f))
+
 ## [1.5.2](https://github.com/AnganSamadder/opentmux/compare/v1.5.1...v1.5.2) (2026-02-10)
 
 
