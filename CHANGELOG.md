@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2](https://github.com/AnganSamadder/opentmux/compare/v1.5.1...v1.5.2) (2026-02-10)
+
+
+### Bug Fixes
+
+* bypass tmux wrapper for interactive mode (no args) ([51acfd5](https://github.com/AnganSamadder/opentmux/commit/51acfd5bf4e3e83cf1cf7c3ab5974894d876da19))
+* correct GitHub Actions workflows for OIDC publishing ([2b351c0](https://github.com/AnganSamadder/opentmux/commit/2b351c048cbaabfa57b6c0cbb8a4b33eae96109f))
+* handle opentmux symlink in argv parsing ([baa8c7e](https://github.com/AnganSamadder/opentmux/commit/baa8c7e80cf971d08f2c44f274e6791b9a3bb3a5))
+* handle symlinked binaries in argument parsing ([9dea6e0](https://github.com/AnganSamadder/opentmux/commit/9dea6e05a5ca33a7f86b43ddd0f886830b0e724f))
+* remove leading ./ from bin path in package.json ([a40547d](https://github.com/AnganSamadder/opentmux/commit/a40547d6b0948b9e109637d5e846b99eff68de6a))
+* use string format for bin field instead of object ([8b21ed0](https://github.com/AnganSamadder/opentmux/commit/8b21ed01b446e2284445053d298532805919f563))
+
 ## [1.5.2] - 2026-02-10
 
 ### Fixed
