@@ -22,10 +22,16 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-          always-auth: true
+      - name: Clear npm token env (force OIDC)
+        run: |
+          echo "NODE_AUTH_TOKEN=" >> "$GITHUB_ENV"
+          echo "NPM_TOKEN=" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: bun install
       - name: Build
         run: bun run build
-      - name: Publish to NPM with provenance
+      - name: Publish to NPM
         run: npm publish --access public --provenance
+        env:
+          NPM_CONFIG_PROVENANCE: true
+          NODE_AUTH_TOKEN: ""
