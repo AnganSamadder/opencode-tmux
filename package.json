@@ -10,9 +10,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && bun run build:go",
+    "build:go": "bun run scripts/build-go-runtime.ts",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "proto:generate": "buf dep update && buf generate",
+    "bench:burst": "bun run scripts/bench/run-burst.ts",
     "prepublishOnly": "bun run build",
     "postinstall": "test -f dist/scripts/install.js && node dist/scripts/install.js || echo 'Skipping postinstall setup (dist not found)'"
   },

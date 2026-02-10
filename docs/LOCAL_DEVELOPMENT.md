@@ -12,6 +12,9 @@ cd opentmux
 # Install dependencies
 bun install
 
+# Install Go toolchain (required for rewrite branch)
+brew install go buf
+
 # Build the project
 bun run build
 
@@ -36,6 +39,7 @@ This runs `tsup` in watch mode, automatically rebuilding when you make changes.
 ```bash
 bun run build
 ```
+This runs TypeScript bundling and builds Go runtime binaries into `dist/runtime/<os-arch>/`.
 
 ### Type Checking
 ```bash

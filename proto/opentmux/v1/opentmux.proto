@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package opentmux.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/AnganSamadder/opentmux/gen/go/opentmux/v1;opentmuxv1";
+
+message Config {
+  bool enabled = 1;
+  uint32 port = 2;
+  string layout = 3;
+  uint32 main_pane_size = 4 [(buf.validate.field).uint32 = {gte: 20, lte: 80}];
+  bool auto_close = 5;
+  uint32 spawn_delay_ms = 6;
+  uint32 max_retry_attempts = 7;
+  uint32 layout_debounce_ms = 8;
+  uint32 max_agents_per_column = 9;
+  bool reaper_enabled = 10;
+  uint32 reaper_interval_ms = 11;
+  uint32 reaper_min_zombie_checks = 12;
+  uint32 reaper_grace_period_ms = 13;
+  bool reaper_auto_self_destruct = 14;
+  uint32 reaper_self_destruct_timeout_ms = 15;
+  bool rotate_port = 16;
+  uint32 max_ports = 17;
+}
+
+message InitRequest {
+  string directory = 1;
+  string server_url = 2;
+  Config config = 3;
+}
+
+message InitResponse {
+  bool enabled = 1;
+  string message = 2;
+}
+
+message SessionCreatedInfo {
+  string id = 1;
+  string parent_id = 2;
+  string title = 3;
+}
+
+message SessionCreatedRequest {
+  string type = 1;
+  SessionCreatedInfo info = 2;
+}
+
+message SessionCreatedResponse {
+  bool accepted = 1;
+}
+
+message ShutdownRequest {
+  string reason = 1;
+}
+
+message ShutdownResponse {
+  bool ok = 1;
+}
+
+message StatsRequest {}
+
+message StatsResponse {
+  uint64 tracked_sessions = 1;
+  uint64 pending_sessions = 2;
+  uint64 queue_depth = 3;
+}
+
+service OpentmuxControl {
+  rpc Init(InitRequest) returns (InitResponse);
+  rpc OnSessionCreated(SessionCreatedRequest) returns (SessionCreatedResponse);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+  rpc Stats(StatsRequest) returns (StatsResponse);
+}

@@ -1,8 +1,8 @@
-import type { Plugin } from './types';
-import { type TmuxConfig } from './config';
-import { TmuxSessionManager } from './tmux-session-manager';
-import { log, startTmuxCheck } from './utils';
+import type { ChildProcess } from 'node:child_process';
+import type { Plugin, PluginOutput } from './types';
 import { loadConfig } from './utils/config-loader';
+import { log } from './utils';
+import { defaultSocketPath, execGoBinary, resolveGoBinary, spawnGoBinary } from './utils/go-runtime';
 
 function detectServerUrl(): string {
   if (process.env.OPENCODE_PORT) {
@@ -13,6 +13,77 @@ function detectServerUrl(): string {
 }
 
 let isInitialized = false;
+let goDaemonProcess: ChildProcess | null = null;
+let goSocketPath: string | null = null;
+let usingGoCore = false;
+let fallbackOutputPromise: Promise<PluginOutput> | null = null;
+
+async function getLegacyOutput(ctx: Parameters<Plugin>[0]): Promise<PluginOutput> {
+  if (!fallbackOutputPromise) {
+    fallbackOutputPromise = import('./legacy-plugin').then((mod) => mod.default(ctx));
+  }
+  return fallbackOutputPromise;
+}
+
+async function initGoCore(ctx: Parameters<Plugin>[0], serverUrl: string): Promise<boolean> {
+  const daemon = resolveGoBinary('opentmuxd');
+  const ctl = resolveGoBinary('opentmuxctl');
+
+  if (!daemon || !ctl) {
+    log('[plugin-go-shim] go runtime missing, falling back to TS', { daemon, ctl });
+    return false;
+  }
+
+  goSocketPath = process.env.OPENTMUXD_SOCKET_PATH ?? defaultSocketPath();
+
+  goDaemonProcess = spawnGoBinary(daemon, ['--socket', goSocketPath], {
+    detached: false,
+    stdio: 'ignore',
+  });
+
+  const started = await execGoBinary(ctl, [
+    'init',
+    '--socket',
+    goSocketPath,
+    '--directory',
+    ctx.directory,
+    '--server-url',
+    serverUrl,
+  ]);
+
+  if (!started.success) {
+    log('[plugin-go-shim] go init failed, falling back to TS', {
+      code: started.code,
+      stderr: started.stderr,
+      error: started.error,
+    });
+    goDaemonProcess?.kill();
+    goDaemonProcess = null;
+    goSocketPath = null;
+    return false;
+  }
+
+  const cleanup = async (reason: string) => {
+    if (!goSocketPath) return;
+    await execGoBinary(ctl, ['shutdown', '--socket', goSocketPath, '--reason', reason]);
+    goDaemonProcess?.kill();
+    goDaemonProcess = null;
+    goSocketPath = null;
+  };
+
+  process.once('SIGINT', () => {
+    void cleanup('SIGINT');
+  });
+  process.once('SIGTERM', () => {
+    void cleanup('SIGTERM');
+  });
+  process.once('beforeExit', () => {
+    void cleanup('beforeExit');
+  });
+
+  usingGoCore = true;
+  return true;
+}
 
 const OpencodeAgentTmux: Plugin = async (ctx) => {
   if (isInitialized) {
@@ -27,51 +98,59 @@ const OpencodeAgentTmux: Plugin = async (ctx) => {
   isInitialized = true;
 
   const config = loadConfig(ctx.directory);
-
-  const tmuxConfig: TmuxConfig = {
-    enabled: config.enabled,
-    layout: config.layout,
-    main_pane_size: config.main_pane_size,
-    spawn_delay_ms: config.spawn_delay_ms,
-    max_retry_attempts: config.max_retry_attempts,
-    layout_debounce_ms: config.layout_debounce_ms,
-    max_agents_per_column: config.max_agents_per_column,
-    reaper_enabled: config.reaper_enabled,
-    reaper_interval_ms: config.reaper_interval_ms,
-    reaper_min_zombie_checks: config.reaper_min_zombie_checks,
-    reaper_grace_period_ms: config.reaper_grace_period_ms,
-    reaper_auto_self_destruct: config.reaper_auto_self_destruct,
-    reaper_self_destruct_timeout_ms: config.reaper_self_destruct_timeout_ms,
-    rotate_port: config.rotate_port,
-    max_ports: config.max_ports,
-  };
-
   const serverUrl = ctx.serverUrl?.toString() || detectServerUrl();
 
-  log('[plugin] initialized', {
-    tmuxConfig,
+  log('[plugin-go-shim] initialization', {
     directory: ctx.directory,
     serverUrl,
+    enabled: config.enabled,
   });
 
-  if (tmuxConfig.enabled) {
-    startTmuxCheck();
+  const goOk = await initGoCore(ctx, serverUrl);
+  if (!goOk) {
+    return getLegacyOutput(ctx);
   }
-
-  const tmuxSessionManager = new TmuxSessionManager(ctx, tmuxConfig, serverUrl);
 
   return {
     name: 'opentmux',
-
     event: async (input) => {
-      await tmuxSessionManager.onSessionCreated(
-        input.event as {
-          type: string;
-          properties?: {
-            info?: { id?: string; parentID?: string; title?: string };
-          };
-        },
-      );
+      if (!goSocketPath) {
+        return;
+      }
+      const ctl = resolveGoBinary('opentmuxctl');
+      if (!ctl) {
+        return;
+      }
+
+      const event = input.event as {
+        type: string;
+        properties?: {
+          info?: { id?: string; parentID?: string; title?: string };
+        };
+      };
+
+      const info = event.properties?.info;
+      if (!usingGoCore) {
+        const legacy = await getLegacyOutput(ctx);
+        if (legacy.event) {
+          await legacy.event(input);
+        }
+        return;
+      }
+
+      await execGoBinary(ctl, [
+        'session-created',
+        '--socket',
+        goSocketPath,
+        '--type',
+        event.type,
+        '--id',
+        info?.id ?? '',
+        '--parent-id',
+        info?.parentID ?? '',
+        '--title',
+        info?.title ?? 'Subagent',
+      ]);
     },
   };
 };

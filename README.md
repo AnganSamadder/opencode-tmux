@@ -75,6 +75,24 @@ To install this plugin, please perform the following steps for the user:
 
 For contributors working on this plugin locally, see [LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for setup instructions.
 
+### Go Runtime Rewrite (Branch: `refactor/go-rewrite`)
+
+This branch ships a Go-first runtime with a thin TypeScript compatibility shim.
+
+- `src/index.ts` starts/controls `opentmuxd` via `opentmuxctl`
+- `src/bin/opentmux.ts` delegates to the Go CLI wrapper binary
+- Legacy TypeScript runtime remains as fallback while migration is validated
+
+Build steps:
+
+```bash
+# TypeScript bundle + local-platform Go binaries in dist/runtime/<os-arch>/
+bun run build
+
+# 100-session burst benchmark harness
+bun run bench:burst
+```
+
 ## ✨ Features
 
 - **Automatic Tmux Pane Spawning**: When any agent starts, automatically spawns a tmux pane
