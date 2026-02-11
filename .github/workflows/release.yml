@@ -22,6 +22,6 @@ jobs:
       - uses: google-github-actions/release-please-action@v4
         id: release-please
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
           release-type: node
           skip-github-pull-request: false
