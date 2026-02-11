@@ -23,6 +23,13 @@ jobs:
           node-version: "24"
       - name: Upgrade npm to latest (required for OIDC)
         run: npm install -g npm@latest
+      - name: Debug OIDC environment
+        run: |
+          echo "npm version: $(npm --version)"
+          echo "Node version: $(node --version)"
+          echo "OIDC token request URL exists: $([[ -n \"$ACTIONS_ID_TOKEN_REQUEST_URL\" ]] && echo 'YES' || echo 'NO')"
+          echo "OIDC token request token exists: $([[ -n \"$ACTIONS_ID_TOKEN_REQUEST_TOKEN\" ]] && echo 'YES' || echo 'NO')"
+          npm config list
       - name: Install dependencies
         run: bun install
       - name: Build
