@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4](https://github.com/AnganSamadder/opentmux/compare/v1.5.3...v1.5.4) (2026-02-11)
+
+
+### Bug Fixes
+
+* trigger automated release with RELEASE_PAT ([2c99ff6](https://github.com/AnganSamadder/opentmux/commit/2c99ff694fa0c6e20ea55b0d75281cd3f986be6f))
+* use RELEASE_PAT for workflow triggering ([381a161](https://github.com/AnganSamadder/opentmux/commit/381a16113dbf91c492cc924615ad1ceb1ba0ee94))
+
 ## [1.5.3](https://github.com/AnganSamadder/opentmux/compare/v1.5.2...v1.5.3) (2026-02-10)
 
 
