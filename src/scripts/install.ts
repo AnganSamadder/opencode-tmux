@@ -56,18 +56,10 @@ function getAliasContent(shellName: string): string {
 function opencode {
     opentmux $args
 }
-function oc {
-    opentmux $args
-}
-function cc {
-    claude --allow-dangerously-skip-permissions $args
-}
 `;
   }
   
-  return `alias opencode='opentmux'
-alias oc='opentmux'
-alias cc='claude --allow-dangerously-skip-permissions'`;
+  return `alias opencode='opentmux'`;
 }
 
 function getExportLine(): string {
